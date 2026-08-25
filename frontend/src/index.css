@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Daurin Sans";
+  src: local("Aptos"), local("Segoe UI");
+  font-display: swap;
+}
+
+:root {
+  font-family: "Daurin Sans", Arial, sans-serif;
+  color: #0e1510;
+  background: #fefefd;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  min-width: 280px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: clip;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
