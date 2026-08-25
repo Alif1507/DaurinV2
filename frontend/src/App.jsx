@@ -3,6 +3,7 @@ import Navbar from './components/Navbar/Navbar'
 import Hero from './components/Hero/Hero'
 import About from './components/About/About'
 import Flow from './components/Flow/Flow'
+import EducationAccordion from './components/EducationAccordion/EducationAccordion'
 
 export default function App() {
   useLayoutEffect(() => {
@@ -23,6 +24,7 @@ export default function App() {
       <Hero />
       <About />
       <Flow />
+      <EducationAccordion />
     </main>
   )
 }
