@@ -1,0 +1,518 @@
+.alur {
+  --alur-green: #075735;
+  --alur-leaf: #3f9557;
+  --alur-ink: #202521;
+  --alur-muted: #687069;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(92px, 9vw, 148px) max(clamp(18px, 4.5vw, 72px), env(safe-area-inset-right, 0px)) clamp(110px, 10vw, 170px);
+  background:
+    radial-gradient(circle at 50% 22%, rgba(63, 149, 87, 0.045), transparent 28%),
+    #fefefd;
+  scroll-margin-top: 24px;
+}
+
+.alur__header {
+  width: min(100%, 780px);
+  margin: 0 auto clamp(58px, 6vw, 88px);
+  text-align: center;
+}
+
+.alur__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  margin: 0;
+  color: #080b09;
+  font-size: clamp(38px, 3.7vw, 58px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.alur__initial {
+  display: inline-block;
+  margin-right: -0.08em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.35em;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 0;
+  transform: translateY(0.08em) rotate(-7deg);
+}
+
+.alur__header p {
+  max-width: 680px;
+  margin: clamp(22px, 2.2vw, 30px) auto 0;
+  color: var(--alur-muted);
+  font-size: clamp(17px, 1.55vw, 23px);
+  line-height: 1.48;
+  letter-spacing: -0.018em;
+}
+
+.alur__spine {
+  width: min(100%, 420px);
+  margin-inline: auto;
+}
+
+.alur__step,
+.alur__branch-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alur__card {
+  width: min(100%, 270px);
+  margin: 0;
+  color: var(--alur-ink);
+  text-align: center;
+}
+
+.alur__card--large {
+  width: min(100%, 330px);
+}
+
+.alur__card--small {
+  width: min(100%, 155px);
+}
+
+.alur__card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-inline: auto;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), filter 320ms ease;
+}
+
+.alur__card figcaption {
+  margin-top: 10px;
+  font-size: clamp(13px, 1.05vw, 16px);
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+}
+
+.alur__card--small figcaption {
+  font-size: clamp(11px, 0.9vw, 14px);
+  text-transform: none;
+}
+
+.alur__arrow {
+  display: block;
+  width: 24px;
+  height: clamp(54px, 5vw, 72px);
+  margin-inline: auto;
+  color: var(--alur-green);
+  overflow: visible;
+  transform-origin: center top;
+}
+
+.alur__arrow--compact {
+  height: clamp(42px, 4vw, 58px);
+}
+
+.alur__arrow path,
+.alur__fork path,
+.alur__split-fork path,
+.alur__merge path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 4;
+}
+
+.alur__fork {
+  width: min(100%, 1240px);
+  height: 110px;
+  margin: 18px auto 0;
+  color: var(--alur-green);
+  transform-origin: center top;
+}
+
+.alur__fork svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.alur__route-picker {
+  display: none;
+}
+
+.alur__branches {
+  position: relative;
+  width: min(100%, 1240px);
+  min-height: 940px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  margin: 0 auto;
+}
+
+.alur__branch {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alur__branch .alur__card {
+  flex: 0 0 auto;
+}
+
+.alur__mobile-entry {
+  display: none;
+}
+
+.alur__split-fork {
+  width: min(100%, 350px);
+  height: 78px;
+  margin: 18px auto 0;
+  color: var(--alur-green);
+}
+
+.alur__split-fork svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.alur__split {
+  width: min(100%, 350px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 0;
+}
+
+.alur__split-column {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alur__route-tail {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 82px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.alur__route-tail::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--route-x, 50%);
+  width: 3px;
+  border-radius: 999px;
+  background: var(--alur-green);
+  transform: translateX(-50%);
+}
+
+.alur__route-tail--anorganic {
+  --route-x: 75%;
+}
+
+.alur__route-tail--residual {
+  --route-x: 50%;
+}
+
+.alur__merge {
+  position: relative;
+  width: min(100%, 1240px);
+  height: 140px;
+  margin: 0 auto;
+  color: var(--alur-green);
+}
+
+.alur__merge-desktop {
+  display: block;
+  width: 100%;
+  height: 104px;
+  overflow: visible;
+}
+
+.alur__merge-mobile {
+  display: none;
+}
+
+.alur__merge span {
+  display: block;
+  width: fit-content;
+  margin: 8px auto 0;
+  color: var(--alur-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.alur__spine--closing {
+  margin-top: 10px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .alur__card:hover img {
+    filter: drop-shadow(0 14px 16px rgba(7, 87, 53, 0.12));
+    transform: translateY(-5px) scale(1.015);
+  }
+}
+
+@media (max-width: 900px) {
+  .alur__branches {
+    min-height: 820px;
+  }
+
+  .alur__card {
+    width: min(100%, 235px);
+  }
+
+  .alur__card--small {
+    width: min(100%, 130px);
+  }
+
+}
+
+@media (max-width: 700px) {
+  .alur {
+    padding-top: 84px;
+    padding-right: max(18px, env(safe-area-inset-right, 0px));
+    padding-bottom: 110px;
+    padding-left: max(18px, env(safe-area-inset-left, 0px));
+    scroll-margin-top: 0;
+  }
+
+  .alur__header {
+    margin-bottom: 54px;
+  }
+
+  .alur__title {
+    align-items: center;
+    font-size: clamp(34px, 9.6vw, 47px);
+    line-height: 1.08;
+  }
+
+  .alur__header p {
+    max-width: 500px;
+    font-size: clamp(16px, 4.3vw, 19px);
+    line-height: 1.55;
+  }
+
+  .alur__spine {
+    width: min(100%, 350px);
+  }
+
+  .alur__branches {
+    width: min(100%, 440px);
+    min-height: 0;
+    grid-template-columns: 1fr;
+    gap: 72px;
+    margin-top: 0;
+  }
+
+  .alur__fork {
+    height: 94px;
+    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .alur__fork svg {
+    display: none;
+  }
+
+  .alur__route-picker {
+    width: min(100%, 420px);
+    display: block;
+    color: var(--alur-green);
+  }
+
+  .alur__route-picker p {
+    margin: 0 0 10px;
+    color: var(--alur-muted);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .alur__route-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border: 1.5px solid rgba(7, 87, 53, 0.25);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 12px 30px rgba(7, 87, 53, 0.08);
+  }
+
+  .alur__route-buttons button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 9px 8px;
+    border: 0;
+    border-radius: 11px;
+    color: var(--alur-green);
+    background: transparent;
+    font-size: clamp(11px, 3.4vw, 14px);
+    font-weight: 750;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      color 220ms ease,
+      background-color 220ms ease,
+      box-shadow 220ms ease,
+      transform 220ms ease;
+  }
+
+  .alur__route-buttons button[aria-selected="true"] {
+    color: #fff;
+    background: var(--alur-green);
+    box-shadow: 0 7px 18px rgba(7, 87, 53, 0.2);
+  }
+
+  .alur__route-buttons button:active {
+    transform: scale(0.97);
+  }
+
+  .alur__route-buttons button:focus-visible {
+    outline: 3px solid rgba(63, 149, 87, 0.32);
+    outline-offset: 2px;
+  }
+
+  .alur__branch {
+    width: 100%;
+  }
+
+  .alur__branch:not(.alur__branch--selected) {
+    display: none;
+  }
+
+  .alur__branch--selected {
+    animation: alur-route-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .alur__mobile-entry {
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .alur__branch .alur__card {
+    width: min(100%, 300px);
+  }
+
+  .alur__branch .alur__card--small {
+    width: min(100%, 145px);
+  }
+
+  .alur__split {
+    width: min(100%, 340px);
+  }
+
+  .alur__split-fork {
+    width: min(100%, 340px);
+  }
+
+  .alur__route-tail,
+  .alur__route-tail--anorganic {
+    display: none;
+  }
+
+  .alur__merge {
+    width: min(100%, 420px);
+    height: 112px;
+    margin-top: 54px;
+  }
+
+  .alur__merge-desktop {
+    display: none;
+  }
+
+  .alur__merge-mobile {
+    display: block;
+    width: 24px;
+    height: 72px;
+    margin-inline: auto;
+    overflow: visible;
+  }
+
+  .alur__merge span {
+    margin-top: 5px;
+    white-space: nowrap;
+  }
+
+  .alur[data-mobile-route="organic"] .alur__merge,
+  .alur[data-mobile-route="organic"] .alur__spine--closing {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .alur__title {
+    font-size: clamp(31px, 9.2vw, 39px);
+    letter-spacing: -0.05em;
+  }
+
+  .alur__header p {
+    font-size: 16px;
+  }
+
+  .alur__card--large,
+  .alur__branch .alur__card {
+    width: min(100%, 285px);
+  }
+
+  .alur__branch .alur__card--small {
+    width: min(100%, 132px);
+  }
+
+  .alur__merge span {
+    font-size: 9px;
+    letter-spacing: 0.055em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alur__card img {
+    transition: none;
+  }
+
+  .alur__branch--selected {
+    animation: none;
+  }
+
+  .alur__route-buttons button {
+    transition: none;
+  }
+}
+
+@keyframes alur-route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
