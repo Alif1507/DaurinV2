@@ -1,0 +1,14 @@
+services:
+  api:
+    restart: unless-stopped
+    # Compose 2.24.4+: remove the development source bind mount entirely.
+    volumes: !reset []
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --workers
+      - "2"

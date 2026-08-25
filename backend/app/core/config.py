@@ -1,0 +1,56 @@
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    app_name: str = "RE-SCHOOL API"
+    app_env: Literal["development", "test", "production"] = "development"
+    api_v1_prefix: str = "/api/v1"
+    frontend_origin: str = "http://localhost:5173"
+
+    supabase_url: str = ""
+    supabase_anon_key: SecretStr = SecretStr("")
+    supabase_service_role_key: SecretStr = SecretStr("")
+
+    report_image_bucket: str = "report-images"
+    max_upload_mb: int = Field(default=5, ge=1, le=25)
+    signed_url_ttl_seconds: int = Field(default=3600, ge=60, le=86400)
+
+    @field_validator("api_v1_prefix")
+    @classmethod
+    def validate_api_prefix(cls, value: str) -> str:
+        value = value.rstrip("/")
+        if not value.startswith("/"):
+            raise ValueError("API_V1_PREFIX must start with '/'")
+        return value
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.frontend_origin.split(",") if origin.strip()]
+
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.max_upload_mb * 1024 * 1024
+
+    @property
+    def supabase_configured(self) -> bool:
+        return bool(
+            self.supabase_url
+            and self.supabase_anon_key.get_secret_value()
+            and self.supabase_service_role_key.get_secret_value()
+        )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

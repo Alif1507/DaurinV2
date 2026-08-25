@@ -1,3 +1,17 @@
 skills-lock.json
 .agents/*
 referance/*
+
+# Python / backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+backend/.env
+
+# Frontend build artifacts
+frontend/dist/
+frontend/*.png
