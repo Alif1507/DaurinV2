@@ -1,16 +1,49 @@
-# React + Vite
+# RE-SCHOOL Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React/Vite frontend for the Daurin landing page, authenticated CAMIDE camera, and staff/admin dashboard.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## Docker
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The repository Compose configuration builds this app as static files served by
+Nginx. From the `backend` directory, start the complete application with:
 
-## Expanding the ESLint configuration
+```bash
+docker compose up --build
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Open `http://localhost:5173`. Nginx proxies `/api` requests to the backend
+container, so the browser does not need to know the internal Docker hostname.
+
+Dashboard, reporting, report history, and CAMIDE routes require a valid Supabase
+session. Role checks and profile status are enforced by the backend.
+
+The frontend uses `http://localhost:8000/api/v1` by default. Override it with:
+
+```env
+VITE_API_URL=http://localhost:8000/api/v1
+```
+
+Supabase login configuration is loaded safely from `GET /api/v1/auth/config`. You may alternatively set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Never place the Supabase service-role key in this directory.
+
+Routes:
+
+- `/` — public landing page
+- `/login` — Supabase login
+- `/dashboard` — staff/admin dashboard
+- `/camide` — authenticated camera identification
+- `/report` — student/teacher cleanliness report form
+- `/my-reports` — personal report history and progress
+
+## Checks
+
+```bash
+npm run lint
+npm run build
+```

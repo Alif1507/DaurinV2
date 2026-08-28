@@ -1,9 +1,11 @@
 from uuid import uuid4
+from types import SimpleNamespace
 
 from app.core.dependencies import get_current_user
 from app.schemas.enums import Role
 from app.schemas.user import Profile
 from app.main import app
+from app.services.auth_service import AuthService
 
 
 def student_profile() -> Profile:
@@ -37,3 +39,31 @@ def test_student_cannot_access_staff_endpoint(client):
     response = client.get("/api/v1/waste-records")
     assert response.status_code == 403
     assert response.json()["detail"]["code"] == "FORBIDDEN"
+
+
+def test_first_login_provisions_safe_student_profile():
+    user_id = uuid4()
+    auth_user = SimpleNamespace(
+        id=user_id,
+        email="new-student@example.com",
+        user_metadata={"full_name": "New Student"},
+    )
+    gateway = SimpleNamespace(
+        auth_client=SimpleNamespace(
+            auth=SimpleNamespace(get_user=lambda _token: SimpleNamespace(user=auth_user))
+        )
+    )
+
+    class Profiles:
+        row = None
+
+        def get(self, _user_id):
+            return self.row
+
+        def create(self, payload):
+            self.row = payload
+            return payload
+
+    profile = AuthService(gateway, Profiles()).authenticate("valid-token")
+    assert profile.full_name == "New Student"
+    assert profile.role == Role.STUDENT

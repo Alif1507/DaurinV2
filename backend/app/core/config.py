@@ -26,6 +26,18 @@ class Settings(BaseSettings):
     max_upload_mb: int = Field(default=5, ge=1, le=25)
     signed_url_ttl_seconds: int = Field(default=3600, ge=60, le=86400)
 
+    dashboard_default_days: int = Field(default=30, ge=1, le=365)
+    dashboard_max_range_days: int = Field(default=365, ge=1, le=1095)
+
+    camide_model_path: str = "app/ml/models/waste_classifier.onnx"
+    camide_model_labels: str = "organic,inorganic,b3,residual"
+    camide_confidence_threshold: float = Field(default=0.55, ge=0, le=1)
+    camide_model_version: str = "camide-v1"
+    camide_mock_classifier: bool = False
+    camide_store_images: bool = False
+    camide_image_bucket: str = "waste-identification-images"
+    camide_max_dimension: int = Field(default=6000, ge=224, le=12000)
+
     @field_validator("api_v1_prefix")
     @classmethod
     def validate_api_prefix(cls, value: str) -> str:
@@ -49,6 +61,14 @@ class Settings(BaseSettings):
             and self.supabase_anon_key.get_secret_value()
             and self.supabase_service_role_key.get_secret_value()
         )
+
+    @property
+    def camide_labels(self) -> list[str]:
+        labels = [label.strip() for label in self.camide_model_labels.split(",") if label.strip()]
+        expected = ["organic", "inorganic", "b3", "residual"]
+        if sorted(labels) != sorted(expected) or len(labels) != len(expected):
+            raise ValueError("CAMIDE_MODEL_LABELS must contain organic,inorganic,b3,residual exactly once")
+        return labels
 
 
 @lru_cache

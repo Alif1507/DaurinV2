@@ -1,0 +1,5 @@
+.camide-page { min-height: 100svh; background: #fefefd; }
+.camide-page__nav { position: fixed; inset: 18px 22px auto; z-index: 20; display: flex; justify-content: space-between; pointer-events: none; }
+.camide-page__nav a { min-height: 42px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px; border: 1px solid #d8e4d9; border-radius: 11px; color: #175a38; background: rgba(255,255,255,.9); box-shadow: 0 7px 18px rgba(20,70,40,.07); font-size: 12px; font-weight: 750; text-decoration: none; pointer-events: auto; }
+.camide-page__nav svg { width: 16px; }
+@media (max-width: 520px) { .camide-page__nav { inset: 12px 12px auto; } .camide-page__nav a { padding: 0 10px; font-size: 10px; } }

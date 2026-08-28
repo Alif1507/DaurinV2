@@ -1,16 +1,32 @@
 .alur {
   --alur-green: #075735;
+  --alur-line: #f4fff6;
   --alur-leaf: #3f9557;
-  --alur-ink: #202521;
-  --alur-muted: #687069;
+  --alur-ink: #ffffff;
+  --alur-muted: rgba(255, 255, 255, 0.82);
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: clamp(92px, 9vw, 148px) max(clamp(18px, 4.5vw, 72px), env(safe-area-inset-right, 0px)) clamp(110px, 10vw, 170px);
-  background:
-    radial-gradient(circle at 50% 22%, rgba(63, 149, 87, 0.045), transparent 28%),
-    #fefefd;
+  padding: clamp(142px, 11vw, 178px) max(clamp(18px, 4.5vw, 72px), env(safe-area-inset-right, 0px)) clamp(142px, 11vw, 178px);
+  background: #fff;
   scroll-margin-top: 24px;
+}
+
+.alur::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: clamp(28px, 4vw, 64px) clamp(6px, 1vw, 16px);
+  pointer-events: none;
+  background-image: url("/img/Alur/BackroundAlur.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+
+.alur > * {
+  position: relative;
+  z-index: 1;
 }
 
 .alur__header {
@@ -24,11 +40,12 @@
   align-items: baseline;
   justify-content: center;
   margin: 0;
-  color: #080b09;
-  font-size: clamp(38px, 3.7vw, 58px);
+  color: #fff;
+  font-size: clamp(28px, 2.5vw, 40px);
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.045em;
+  text-shadow: 0 3px 18px rgba(0, 35, 16, 0.36);
 }
 
 .alur__initial {
@@ -46,9 +63,10 @@
   max-width: 680px;
   margin: clamp(22px, 2.2vw, 30px) auto 0;
   color: var(--alur-muted);
-  font-size: clamp(17px, 1.55vw, 23px);
+  font-size: clamp(14px, 1.2vw, 18px);
   line-height: 1.48;
   letter-spacing: -0.018em;
+  text-shadow: 0 2px 12px rgba(0, 35, 16, 0.35);
 }
 
 .alur__spine {
@@ -71,7 +89,7 @@
 }
 
 .alur__card--large {
-  width: min(100%, 330px);
+  width: min(100%, 275px);
 }
 
 .alur__card--small {
@@ -83,6 +101,7 @@
   width: 100%;
   height: auto;
   margin-inline: auto;
+  filter: drop-shadow(0 12px 14px rgba(0, 28, 13, 0.2));
   transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), filter 320ms ease;
 }
 
@@ -93,6 +112,7 @@
   line-height: 1.25;
   letter-spacing: -0.015em;
   text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 28, 13, 0.58);
 }
 
 .alur__card--small figcaption {
@@ -105,7 +125,7 @@
   width: 24px;
   height: clamp(54px, 5vw, 72px);
   margin-inline: auto;
-  color: var(--alur-green);
+  color: var(--alur-line);
   overflow: visible;
   transform-origin: center top;
 }
@@ -131,7 +151,7 @@
   width: min(100%, 1240px);
   height: 110px;
   margin: 18px auto 0;
-  color: var(--alur-green);
+  color: var(--alur-line);
   transform-origin: center top;
 }
 
@@ -177,7 +197,7 @@
   width: min(100%, 350px);
   height: 78px;
   margin: 18px auto 0;
-  color: var(--alur-green);
+  color: var(--alur-line);
 }
 
 .alur__split-fork svg {
@@ -219,7 +239,7 @@
   left: var(--route-x, 50%);
   width: 3px;
   border-radius: 999px;
-  background: var(--alur-green);
+  background: var(--alur-line);
   transform: translateX(-50%);
 }
 
@@ -236,7 +256,7 @@
   width: min(100%, 1240px);
   height: 140px;
   margin: 0 auto;
-  color: var(--alur-green);
+  color: var(--alur-line);
 }
 
 .alur__merge-desktop {
@@ -269,7 +289,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .alur__card:hover img {
-    filter: drop-shadow(0 14px 16px rgba(7, 87, 53, 0.12));
+    filter: drop-shadow(0 16px 18px rgba(0, 28, 13, 0.32));
     transform: translateY(-5px) scale(1.015);
   }
 }
@@ -280,22 +300,26 @@
   }
 
   .alur__card {
-    width: min(100%, 235px);
+    width: min(100%, 178px);
   }
 
   .alur__card--small {
-    width: min(100%, 130px);
+    width: min(100%, 104px);
   }
 
 }
 
 @media (max-width: 700px) {
   .alur {
-    padding-top: 84px;
+    padding-top: 92px;
     padding-right: max(18px, env(safe-area-inset-right, 0px));
-    padding-bottom: 110px;
+    padding-bottom: 100px;
     padding-left: max(18px, env(safe-area-inset-left, 0px));
     scroll-margin-top: 0;
+  }
+
+  .alur::before {
+    inset: 16px 3px;
   }
 
   .alur__header {
@@ -304,7 +328,7 @@
 
   .alur__title {
     align-items: center;
-    font-size: clamp(34px, 9.6vw, 47px);
+    font-size: clamp(30px, 8.4vw, 42px);
     line-height: 1.08;
   }
 
@@ -352,6 +376,7 @@
     letter-spacing: 0.08em;
     text-align: center;
     text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0, 28, 13, 0.4);
   }
 
   .alur__route-buttons {

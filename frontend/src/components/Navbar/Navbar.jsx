@@ -6,6 +6,7 @@ const links = [
   { label: 'Alur', href: '#alur' },
   { label: 'Edukasi', href: '#edukasi' },
   { label: 'CamIde', href: '#camide' },
+  { label: 'Laporan Saya', href: '/my-reports' },
 ]
 
 function DaurinLogo() {
@@ -52,12 +53,12 @@ export default function Navbar() {
       </nav>
 
       <motion.a
-        href="#get-started"
+        href="/report"
         className="navbar__cta"
         whileHover={reduceMotion ? undefined : { scale: 1.035, y: -2 }}
         whileTap={reduceMotion ? undefined : { scale: 0.98 }}
       >
-        Get Started
+        Laporkan
       </motion.a>
     </motion.header>
   )

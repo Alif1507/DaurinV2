@@ -29,3 +29,8 @@ class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=150)
     role: Role | None = None
     is_active: bool | None = None
+
+
+class AuthPublicConfig(BaseModel):
+    supabase_url: str
+    supabase_anon_key: str

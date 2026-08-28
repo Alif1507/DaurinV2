@@ -9,7 +9,7 @@ FastAPI backend for cleanliness reporting and school waste management. Supabase 
 - Cleanliness report creation, ownership, workflow, and image upload
 - Waste records and waste sorting guides
 - Location and user administration
-- Dashboard summaries and daily/weekly/monthly trends
+- Dashboard summaries, comparisons, trends, CAMIDE analytics, and location performance
 - Structured errors, request IDs, CORS allowlist, Swagger, and ReDoc
 - Docker development and production runtime
 
@@ -25,7 +25,7 @@ FastAPI backend for cleanliness reporting and school waste management. Supabase 
 
 2. Copy `.env.example` to `.env` and add the Supabase URL, anon key, and service-role key. Never place the service-role key in the React project.
 
-3. Apply `supabase/migrations/001_reschool_mvp.sql` through the Supabase SQL editor or CLI.
+3. Apply every SQL file in `supabase/migrations` in numeric order through the Supabase SQL editor or CLI.
 
 4. Run the API:
 
@@ -46,6 +46,12 @@ Development:
 ```bash
 docker compose up --build
 ```
+
+This starts both services:
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
 
 Production-style runtime:
 
