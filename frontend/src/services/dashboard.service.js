@@ -11,6 +11,10 @@ async function getData(path, params) {
 
 export const getCurrentUser = () => getData('/auth/me', {})
 export const getLocations = () => getData('/locations', {})
+export async function createLocation(payload) {
+  const response = await api.post('/locations', payload)
+  return response.data.data
+}
 export const getDashboardSummary = (params) => getData('/dashboard/summary', params)
 export const getWasteTrend = (params) => getData('/dashboard/waste-trend', params)
 export const getCamideSummary = (params) => getData('/dashboard/camide-summary', params)
@@ -20,7 +24,22 @@ export const getCamideRecent = () => Promise.resolve([])
 
 export const getReports = (params = {}) => getData('/reports', { page: 1, limit: 100, ...params })
 
+export async function startReport(reportId) {
+  const response = await api.patch(`/reports/${reportId}/start`)
+  return response.data.data
+}
+
+export async function resolveReport({ reportId, resolutionNote }) {
+  const response = await api.patch(`/reports/${reportId}/resolve`, { resolution_note: resolutionNote })
+  return response.data.data
+}
+
 export const getWasteRecords = (params = {}) => getData('/waste-records', { page: 1, limit: 100, ...params })
+
+export async function createWasteRecord(payload) {
+  const response = await api.post('/waste-records', payload)
+  return response.data.data
+}
 
 export const getUsers = (params = {}) => getData('/users', { page: 1, limit: 100, ...params })
 

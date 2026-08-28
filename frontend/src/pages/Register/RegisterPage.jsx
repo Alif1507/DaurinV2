@@ -15,7 +15,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     if (session && profile) navigate(['staff', 'admin'].includes(profile.role) ? '/dashboard' : '/my-reports', { replace: true })
@@ -24,7 +23,6 @@ export default function RegisterPage() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
-    setNotice('')
     if (password !== confirmation) {
       setError('Konfirmasi password belum sama.')
       return
@@ -36,14 +34,8 @@ export default function RegisterPage() {
 
     setIsSubmitting(true)
     try {
-      const result = await signUp(fullName.trim(), email.trim(), password)
-      if (result.needsEmailConfirmation) {
-        setNotice('Akun dibuat. Periksa email untuk mengonfirmasi akun sebelum masuk.')
-        setPassword('')
-        setConfirmation('')
-      } else {
-        navigate('/my-reports', { replace: true })
-      }
+      await signUp(fullName.trim(), email.trim(), password)
+      navigate('/my-reports', { replace: true })
     } catch (signUpError) {
       setError(signUpError.message)
     } finally {
@@ -52,7 +44,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout mode="register" title="Welcome" subtitle="Buat akun pelajar untuk mulai menjaga sekolah bersama.">
+    <AuthLayout mode="register" title="Welcome" subtitle="Buat akun dan langsung mulai menjaga sekolah bersama.">
       <form className="auth-form auth-form--register" onSubmit={handleSubmit}>
         <label><span>Nama lengkap</span><input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" placeholder="Nama Lengkap" required minLength={2} maxLength={150} /></label>
         <label><span>Email</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="Email" required /></label>
@@ -60,7 +52,6 @@ export default function RegisterPage() {
         <label><span>Konfirmasi password</span><input type={showPassword ? 'text' : 'password'} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" placeholder="Konfirmasi Password" required minLength={8} /></label>
 
         {error && <p className="auth-message auth-message--error" role="alert">{error}</p>}
-        {notice && <p className="auth-message auth-message--success" role="status">{notice}</p>}
         <div className="auth-switch"><span>Already have an account?</span><Link to="/login">Log In</Link></div>
         <button className="auth-submit" type="submit" disabled={isSubmitting}><strong>{isSubmitting ? 'Creating...' : 'Sign Up'}</strong><span><ArrowUpRight /></span></button>
       </form>

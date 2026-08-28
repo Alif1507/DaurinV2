@@ -1,8 +1,11 @@
 import base64
+from io import BytesIO
 from types import SimpleNamespace
 from uuid import uuid4
 
+import numpy as np
 import pytest
+from PIL import Image
 
 from app.core.config import Settings
 from app.core.dependencies import get_current_user
@@ -137,6 +140,31 @@ def test_missing_production_model_returns_503():
         classifier.predict(object(), PNG_1X1)
     assert error.value.status_code == 503
     assert error.value.code == "MODEL_NOT_READY"
+
+
+def test_recylo_profile_uses_nhwc_and_groups_subclasses():
+    settings = Settings(app_env="test", camide_model_profile="recylo_10class")
+    classifier = WasteClassifier(settings)
+
+    class FakeSession:
+        tensor = None
+
+        def get_inputs(self):
+            return [SimpleNamespace(name="input")]
+
+        def run(self, *_args):
+            self.tensor = _args[1]["input"]
+            return [np.asarray([[0.10, 0.10, 0.10, 0.10, 0.10, 0.20, 0.075, 0.075, 0.075, 0.075]])]
+
+    session = FakeSession()
+    classifier._get_session = lambda: session
+    image = Image.open(BytesIO(PNG_1X1)).convert("RGB")
+
+    result = classifier.predict(image, PNG_1X1)
+
+    assert session.tensor.shape == (1, 224, 224, 3)
+    assert result["category"] == "b3"
+    assert result["confidence"] == pytest.approx(0.4)
 
 
 def test_database_failure_removes_stored_image():

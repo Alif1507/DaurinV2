@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     dashboard_max_range_days: int = Field(default=365, ge=1, le=1095)
 
     camide_model_path: str = "app/ml/models/waste_classifier.onnx"
+    camide_model_profile: Literal["camide_4class", "recylo_10class"] = "camide_4class"
     camide_model_labels: str = "organic,inorganic,b3,residual"
     camide_confidence_threshold: float = Field(default=0.55, ge=0, le=1)
     camide_model_version: str = "camide-v1"

@@ -1,11 +1,16 @@
-import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
   ArrowUpRight,
   Bot,
+  Building2,
+  CheckCircle2,
+  ClipboardCheck,
   Leaf,
   MapPin,
+  Play,
+  Plus,
   Recycle,
   Scale,
   Search,
@@ -13,11 +18,15 @@ import {
   Sparkles,
   Trash2,
   Users,
+  X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import DashboardShell from '../../components/Dashboard/DashboardShell'
 import { PanelError, PanelLoading } from '../../components/Dashboard/DashboardStates'
+import useAuth from '../../hooks/useAuth'
 import {
+  createLocation,
+  createWasteRecord,
   getCamideRecent,
   getCamideSummary,
   getDashboardSummary,
@@ -26,6 +35,8 @@ import {
   getReports,
   getUsers,
   getWasteRecords,
+  resolveReport,
+  startReport,
 } from '../../services/dashboard.service'
 import {
   categoryLabels,
@@ -96,9 +107,20 @@ function ErrorPanel({ query }) {
   return <section className="dashboard-panel"><PanelError message={query.error?.userMessage} onRetry={query.refetch} /></section>
 }
 
+function todayInputValue() {
+  const today = new Date()
+  const offset = today.getTimezoneOffset() * 60000
+  return new Date(today.getTime() - offset).toISOString().slice(0, 10)
+}
+
 export function ReportsDashboardPage() {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
+  const [selectedReport, setSelectedReport] = useState(null)
+  const [resolutionNote, setResolutionNote] = useState('')
+  const [notice, setNotice] = useState('')
+  const resolutionInputRef = useRef(null)
   const reportsQuery = useQuery({ queryKey: ['reports', 'workspace'], queryFn: () => getReports() })
   const locationsQuery = useQuery({ queryKey: ['locations'], queryFn: getLocations, staleTime: 300000 })
   const summaryQuery = useQuery({ queryKey: ['dashboard', 'summary', 'workspace'], queryFn: () => getDashboardSummary({}) })
@@ -108,15 +130,74 @@ export function ReportsDashboardPage() {
     return (status === 'all' || report.status === status) && phrase.includes(search.toLowerCase())
   }), [locationNames, reportsQuery.data, search, status])
   const summary = summaryQuery.data?.reports
+  const openReports = (reportsQuery.data || []).filter((report) => report.status !== 'resolved').length
+
+  async function refreshReportViews() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['reports'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      queryClient.invalidateQueries({ queryKey: ['reporting', 'my-reports'] }),
+    ])
+  }
+
+  const startReportMutation = useMutation({
+    mutationFn: startReport,
+    onSuccess: async (report) => {
+      await refreshReportViews()
+      setNotice(`${problemLabels[report.problem_type]} mulai ditangani.`)
+    },
+  })
+
+  const resolveReportMutation = useMutation({
+    mutationFn: resolveReport,
+    onSuccess: async (report) => {
+      await refreshReportViews()
+      setSelectedReport(null)
+      setResolutionNote('')
+      setNotice(`${problemLabels[report.problem_type]} ditandai selesai.`)
+    },
+  })
+
+  function openResolveDialog(report) {
+    setNotice('')
+    resolveReportMutation.reset()
+    setResolutionNote('')
+    setSelectedReport(report)
+  }
+
+  function closeResolveDialog() {
+    if (resolveReportMutation.isPending) return
+    setSelectedReport(null)
+    resolveReportMutation.reset()
+  }
+
+  function submitResolution(event) {
+    event.preventDefault()
+    const note = resolutionNote.trim()
+    if (!selectedReport || note.length < 2) return
+    resolveReportMutation.mutate({ reportId: selectedReport.id, resolutionNote: note })
+  }
+
+  useEffect(() => {
+    if (!selectedReport) return undefined
+    resolutionInputRef.current?.focus()
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !resolveReportMutation.isPending) setSelectedReport(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [selectedReport, resolveReportMutation.isPending])
 
   return (
     <DashboardShell>
       <WorkspaceHeader icon={Trash2} eyebrow="Pusat tindak lanjut" title="Dari laporan ke tindakan." description="Urutkan masalah, lihat konteks lokasi, dan jaga setiap laporan sampai selesai." />
-      <OperationsBand label="Antrean hari ini" title="20 laporan perlu perhatian" detail="Prioritas disusun dari laporan baru dan yang masih diproses." items={[
+      <OperationsBand label="Antrean hari ini" title={`${openReports} laporan perlu perhatian`} detail="Prioritas disusun dari laporan baru dan yang masih diproses." items={[
         { label: 'Baru', value: formatNumber(summary?.reported, 0), note: 'menunggu staf' },
         { label: 'Diproses', value: formatNumber(summary?.in_progress, 0), note: 'sedang ditangani' },
         { label: 'Selesai', value: formatNumber(summary?.resolved, 0), note: 'periode ini' },
       ]} />
+      {notice && <div className="location-created-notice staff-notice" role="status"><CheckCircle2 /><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="Tutup pemberitahuan"><X /></button></div>}
+      {startReportMutation.isError && <p className="staff-action-error" role="alert">{startReportMutation.error?.userMessage || 'Laporan tidak dapat mulai ditangani.'}</p>}
       <section className="workspace-toolbar">
         <SearchControl value={search} onChange={setSearch} placeholder="Cari masalah atau lokasi" />
         <div className="workspace-segments" role="group" aria-label="Filter status laporan">
@@ -127,23 +208,45 @@ export function ReportsDashboardPage() {
       {reportsQuery.isError && <ErrorPanel query={reportsQuery} />}
       {!reportsQuery.isLoading && !reportsQuery.isError && (
         <section className="dashboard-panel dashboard-panel--table workspace-table-panel">
-          <header className="dashboard-panel__header"><div><span>Daftar kerja</span><h2>{reports.length} laporan ditemukan</h2></div><small className="workspace-caption">Urut terbaru</small></header>
-          <div className="responsive-table">
-            <table><thead><tr><th>Masalah</th><th>Lokasi</th><th>Waktu</th><th>Status</th><th>Langkah berikut</th></tr></thead><tbody>
-              {reports.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description}</small></td><td>{locationNames[report.location_id]}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td><span className="next-step">{report.status === 'reported' ? 'Tugaskan staf' : report.status === 'in_progress' ? 'Pantau progres' : 'Arsipkan'}</span></td></tr>)}
-            </tbody></table>
-            <div className="mobile-records">{reports.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description}</p><small>{locationNames[report.location_id]} · {formatDateTime(report.created_at)}</small></article>)}</div>
-          </div>
+          <header className="dashboard-panel__header"><div><span>Daftar kerja</span><h2>{reports.length} laporan ditemukan</h2></div><small className="workspace-caption">Ambil → tangani → selesaikan</small></header>
+          {reports.length === 0 ? (
+            <div className="workspace-empty"><span><ClipboardCheck /></span><div><h3>{(reportsQuery.data || []).length ? 'Tidak ada laporan pada filter ini' : 'Antrean laporan masih kosong'}</h3><p>{(reportsQuery.data || []).length ? 'Ubah filter atau pencarian untuk melihat laporan lain.' : 'Laporan dari siswa dan guru akan muncul di sini untuk mulai ditangani.'}</p></div>{(reportsQuery.data || []).length > 0 && <button type="button" onClick={() => { setSearch(''); setStatus('all') }}>Tampilkan semua</button>}</div>
+          ) : (
+            <div className="responsive-table">
+              <table><thead><tr><th>Masalah</th><th>Lokasi</th><th>Waktu</th><th>Status</th><th>Langkah berikut</th></tr></thead><tbody>
+                {reports.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description || 'Tanpa keterangan tambahan'}</small></td><td>{locationNames[report.location_id] || 'Lokasi tidak aktif'}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td>{report.status === 'reported' ? <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => { setNotice(''); startReportMutation.mutate(report.id) }}>{startReportMutation.isPending && startReportMutation.variables === report.id ? 'Mengambil...' : <><Play /> Mulai tangani</>}</button> : report.status === 'in_progress' ? <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button> : <span className="next-step next-step--done"><CheckCircle2 /> Tuntas</span>}</td></tr>)}
+              </tbody></table>
+              <div className="mobile-records">{reports.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description || 'Tanpa keterangan tambahan'}</p><small>{locationNames[report.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(report.created_at)}</small>{report.status === 'reported' && <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => startReportMutation.mutate(report.id)}><Play /> Mulai tangani</button>}{report.status === 'in_progress' && <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button>}</article>)}</div>
+            </div>
+          )}
         </section>
+      )}
+      {selectedReport && (
+        <div className="location-dialog-backdrop" onMouseDown={closeResolveDialog}>
+          <section className="location-dialog operations-dialog" role="dialog" aria-modal="true" aria-labelledby="resolve-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>TINDAK LANJUT / SELESAI</span><h2 id="resolve-dialog-title">Catat hasil penanganan</h2><p>{problemLabels[selectedReport.problem_type]} · {locationNames[selectedReport.location_id] || 'Lokasi tidak aktif'}</p></div><button type="button" onClick={closeResolveDialog} disabled={resolveReportMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
+            <form onSubmit={submitResolution}>
+              <div className="operation-context"><ClipboardCheck /><div><strong>Apa yang sudah dilakukan?</strong><span>Catatan ini dapat dilihat oleh pelapor sebagai hasil penyelesaian.</span></div></div>
+              <label><span>Catatan penyelesaian <strong>*</strong></span><textarea ref={resolutionInputRef} value={resolutionNote} onChange={(event) => setResolutionNote(event.target.value)} minLength="2" maxLength="500" rows="5" required placeholder="Contoh: Sampah sudah dikumpulkan dan area telah dibersihkan." /><small>{resolutionNote.length}/500 karakter</small></label>
+              {resolveReportMutation.isError && <p className="location-form-error" role="alert">{resolveReportMutation.error?.userMessage || 'Laporan tidak dapat diselesaikan.'}</p>}
+              <footer><button type="button" onClick={closeResolveDialog} disabled={resolveReportMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={resolveReportMutation.isPending || resolutionNote.trim().length < 2}>{resolveReportMutation.isPending ? 'Menyimpan...' : <><CheckCircle2 /> Tandai selesai</>}</button></footer>
+            </form>
+          </section>
+        </div>
       )}
     </DashboardShell>
   )
 }
 
 export function WasteDashboardPage() {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const [isWasteFormOpen, setIsWasteFormOpen] = useState(false)
+  const [wasteNotice, setWasteNotice] = useState('')
+  const [wasteForm, setWasteForm] = useState({ location_id: '', record_date: todayInputValue(), organic_weight: '', inorganic_weight: '', residual_weight: '', notes: '' })
   const wasteQuery = useQuery({ queryKey: ['waste', 'workspace'], queryFn: () => getWasteRecords() })
   const locationsQuery = useQuery({ queryKey: ['locations'], queryFn: getLocations, staleTime: 300000 })
+  const locations = useMemo(() => locationsQuery.data || [], [locationsQuery.data])
   const locationNames = useMemo(() => Object.fromEntries((locationsQuery.data || []).map((location) => [location.id, location.name])), [locationsQuery.data])
   const records = useMemo(() => (wasteQuery.data || []).filter((record) => (locationNames[record.location_id] || '').toLowerCase().includes(search.toLowerCase())), [locationNames, search, wasteQuery.data])
   const totals = useMemo(() => records.reduce((acc, record) => ({
@@ -152,6 +255,60 @@ export function WasteDashboardPage() {
     residual: acc.residual + record.residual_weight,
   }), { organic: 0, inorganic: 0, residual: 0 }), [records])
   const grandTotal = totals.organic + totals.inorganic + totals.residual
+  const formTotal = ['organic_weight', 'inorganic_weight', 'residual_weight'].reduce((sum, field) => sum + (Number(wasteForm[field]) || 0), 0)
+
+  const createWasteMutation = useMutation({
+    mutationFn: createWasteRecord,
+    onSuccess: async (record) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['waste'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ])
+      setWasteForm({ location_id: '', record_date: todayInputValue(), organic_weight: '', inorganic_weight: '', residual_weight: '', notes: '' })
+      setIsWasteFormOpen(false)
+      setWasteNotice(`Penimbangan ${formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)} berhasil dicatat.`)
+    },
+  })
+
+  function openWasteForm() {
+    if (!locations.length) return
+    setWasteNotice('')
+    createWasteMutation.reset()
+    setWasteForm((current) => ({ ...current, location_id: current.location_id || locations[0].id }))
+    setIsWasteFormOpen(true)
+  }
+
+  function closeWasteForm() {
+    if (createWasteMutation.isPending) return
+    setIsWasteFormOpen(false)
+    createWasteMutation.reset()
+  }
+
+  function updateWasteField(field, value) {
+    setWasteForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function submitWasteRecord(event) {
+    event.preventDefault()
+    if (!wasteForm.location_id || formTotal <= 0) return
+    createWasteMutation.mutate({
+      location_id: wasteForm.location_id,
+      record_date: wasteForm.record_date,
+      organic_weight: Number(wasteForm.organic_weight) || 0,
+      inorganic_weight: Number(wasteForm.inorganic_weight) || 0,
+      residual_weight: Number(wasteForm.residual_weight) || 0,
+      notes: wasteForm.notes.trim() || null,
+    })
+  }
+
+  useEffect(() => {
+    if (!isWasteFormOpen) return undefined
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !createWasteMutation.isPending) setIsWasteFormOpen(false)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isWasteFormOpen, createWasteMutation.isPending])
 
   return (
     <DashboardShell>
@@ -161,6 +318,7 @@ export function WasteDashboardPage() {
         { label: 'Anorganik', value: formatKg(totals.inorganic), note: `${formatPercent(grandTotal ? totals.inorganic / grandTotal * 100 : 0)} dari total` },
         { label: 'Residu', value: formatKg(totals.residual), note: `${formatPercent(grandTotal ? totals.residual / grandTotal * 100 : 0)} dari total` },
       ]} />
+      {wasteNotice && <div className="location-created-notice staff-notice" role="status"><CheckCircle2 /><span>{wasteNotice}</span><button type="button" onClick={() => setWasteNotice('')} aria-label="Tutup pemberitahuan"><X /></button></div>}
       <div className="dashboard-grid dashboard-grid--two workspace-split">
         <section className="dashboard-panel material-balance">
           <header className="dashboard-panel__header"><div><span>Porsi material</span><h2>Komposisi penimbangan</h2></div></header>
@@ -170,10 +328,26 @@ export function WasteDashboardPage() {
           <span className="diversion-card__icon"><Leaf /></span><span>Potensi dialihkan</span><strong>{formatPercent(grandTotal ? (totals.organic + totals.inorganic) / grandTotal * 100 : 0)}</strong><p>Organik dan anorganik mendominasi aliran. Jaga pemilahan di sumber agar tidak berubah menjadi residu.</p>
         </section>
       </div>
-      <section className="workspace-toolbar"><SearchControl value={search} onChange={setSearch} placeholder="Cari lokasi penimbangan" /><span className="workspace-toolbar__note"><Scale /> {records.length} catatan</span></section>
+      <section className="workspace-toolbar"><SearchControl value={search} onChange={setSearch} placeholder="Cari lokasi penimbangan" /><div className="location-toolbar__actions"><span className="workspace-toolbar__note"><Scale /> {records.length} catatan</span><button className="location-add-button" type="button" onClick={openWasteForm} disabled={!locations.length} title={locations.length ? undefined : 'Admin perlu menambahkan lokasi terlebih dahulu'}><Plus /> Catat penimbangan</button></div></section>
       {wasteQuery.isLoading && <LoadingPanel />}
       {wasteQuery.isError && <ErrorPanel query={wasteQuery} />}
-      {!wasteQuery.isLoading && !wasteQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Riwayat timbang</span><h2>Catatan sampah</h2></div></header><div className="responsive-table"><table><thead><tr><th>Tanggal</th><th>Lokasi</th><th>Organik</th><th>Anorganik</th><th>Residu</th><th>Total</th></tr></thead><tbody>{records.map((record) => { const total = record.organic_weight + record.inorganic_weight + record.residual_weight; return <tr key={record.id}><td>{formatShortDate(record.record_date)}</td><td><strong>{locationNames[record.location_id]}</strong></td><td>{formatKg(record.organic_weight)}</td><td>{formatKg(record.inorganic_weight)}</td><td>{formatKg(record.residual_weight)}</td><td><strong>{formatKg(total)}</strong></td></tr> })}</tbody></table><div className="mobile-records">{records.map((record) => <article key={record.id}><div><strong>{locationNames[record.location_id]}</strong><strong>{formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)}</strong></div><p>Organik {formatKg(record.organic_weight)} · Anorganik {formatKg(record.inorganic_weight)} · Residu {formatKg(record.residual_weight)}</p><small>{formatShortDate(record.record_date)}</small></article>)}</div></div></section>}
+      {!wasteQuery.isLoading && !wasteQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Riwayat timbang</span><h2>Catatan sampah</h2></div></header>{records.length === 0 ? <div className="workspace-empty"><span><Scale /></span><div><h3>{(wasteQuery.data || []).length ? 'Lokasi tidak ditemukan' : 'Belum ada hasil penimbangan'}</h3><p>{(wasteQuery.data || []).length ? 'Hapus pencarian untuk melihat semua catatan.' : locations.length ? 'Catat berat sampah organik, anorganik, dan residu setelah pengumpulan.' : 'Admin perlu menambahkan lokasi sebelum staf dapat mencatat penimbangan.'}</p></div>{(wasteQuery.data || []).length ? <button type="button" onClick={() => setSearch('')}>Tampilkan semua</button> : locations.length > 0 && <button type="button" onClick={openWasteForm}>Catat pertama</button>}</div> : <div className="responsive-table"><table><thead><tr><th>Tanggal</th><th>Lokasi</th><th>Organik</th><th>Anorganik</th><th>Residu</th><th>Total</th></tr></thead><tbody>{records.map((record) => { const total = record.organic_weight + record.inorganic_weight + record.residual_weight; return <tr key={record.id}><td>{formatShortDate(record.record_date)}</td><td><strong>{locationNames[record.location_id]}</strong></td><td>{formatKg(record.organic_weight)}</td><td>{formatKg(record.inorganic_weight)}</td><td>{formatKg(record.residual_weight)}</td><td><strong>{formatKg(total)}</strong></td></tr> })}</tbody></table><div className="mobile-records">{records.map((record) => <article key={record.id}><div><strong>{locationNames[record.location_id]}</strong><strong>{formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)}</strong></div><p>Organik {formatKg(record.organic_weight)} · Anorganik {formatKg(record.inorganic_weight)} · Residu {formatKg(record.residual_weight)}</p><small>{formatShortDate(record.record_date)}</small></article>)}</div></div>}</section>}
+      {isWasteFormOpen && (
+        <div className="location-dialog-backdrop" onMouseDown={closeWasteForm}>
+          <section className="location-dialog operations-dialog waste-dialog" role="dialog" aria-modal="true" aria-labelledby="waste-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>LEDGER MATERIAL / BARU</span><h2 id="waste-dialog-title">Catat hasil penimbangan</h2><p>Masukkan berat dalam kilogram sesuai hasil timbang di lokasi.</p></div><button type="button" onClick={closeWasteForm} disabled={createWasteMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
+            <form onSubmit={submitWasteRecord}>
+              <div className="waste-form-meta"><label><span>Lokasi <strong>*</strong></span><select value={wasteForm.location_id} onChange={(event) => updateWasteField('location_id', event.target.value)} required>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label><label><span>Tanggal <strong>*</strong></span><input type="date" value={wasteForm.record_date} max={todayInputValue()} onChange={(event) => updateWasteField('record_date', event.target.value)} required /></label></div>
+              <fieldset className="waste-weight-grid"><legend>Berat per kategori</legend>{[['organic_weight', 'Organik'], ['inorganic_weight', 'Anorganik'], ['residual_weight', 'Residu']].map(([field, label]) => <label key={field}><span>{label}</span><span className="weight-input"><input type="number" value={wasteForm[field]} onChange={(event) => updateWasteField(field, event.target.value)} min="0" step="0.01" inputMode="decimal" placeholder="0" /><small>kg</small></span></label>)}</fieldset>
+              <div className="waste-form-total"><span>Total penimbangan</span><strong>{formatKg(formTotal)}</strong></div>
+              <label><span>Catatan <small>Opsional</small></span><textarea value={wasteForm.notes} onChange={(event) => updateWasteField('notes', event.target.value)} maxLength="500" rows="3" placeholder="Contoh: Pengumpulan sore dari tiga kelas." /><small>{wasteForm.notes.length}/500 karakter</small></label>
+              {formTotal <= 0 && <p className="waste-form-hint">Isi minimal satu kategori dengan berat lebih dari 0 kg.</p>}
+              {createWasteMutation.isError && <p className="location-form-error" role="alert">{createWasteMutation.error?.userMessage || 'Penimbangan tidak dapat disimpan.'}</p>}
+              <footer><button type="button" onClick={closeWasteForm} disabled={createWasteMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={createWasteMutation.isPending || !wasteForm.location_id || formTotal <= 0}>{createWasteMutation.isPending ? 'Menyimpan...' : <><Plus /> Simpan penimbangan</>}</button></footer>
+            </form>
+          </section>
+        </div>
+      )}
     </DashboardShell>
   )
 }
@@ -206,25 +380,130 @@ export function CamideDashboardPage() {
 }
 
 export function LocationsDashboardPage() {
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [createdNotice, setCreatedNotice] = useState('')
+  const nameInputRef = useRef(null)
+  const isAdmin = profile?.role === 'admin'
   const locationsQuery = useQuery({ queryKey: ['dashboard', 'locations', 'workspace'], queryFn: () => getLocationPerformance({}) })
-  const locations = useMemo(() => (locationsQuery.data || []).filter((location) => location.location_name.toLowerCase().includes(search.toLowerCase())), [locationsQuery.data, search])
-  const totalReports = locations.reduce((sum, location) => sum + location.reports, 0)
-  const totalWaste = locations.reduce((sum, location) => sum + location.total_waste, 0)
-  const averageResolution = locations.length ? locations.reduce((sum, location) => sum + location.resolution_rate, 0) / locations.length : 0
+  const allLocations = useMemo(() => locationsQuery.data || [], [locationsQuery.data])
+  const locations = useMemo(() => allLocations.filter((location) => location.location_name.toLowerCase().includes(search.toLowerCase())), [allLocations, search])
+  const totalReports = allLocations.reduce((sum, location) => sum + location.reports, 0)
+  const totalWaste = allLocations.reduce((sum, location) => sum + location.total_waste, 0)
+  const averageResolution = allLocations.length ? allLocations.reduce((sum, location) => sum + location.resolution_rate, 0) / allLocations.length : 0
+
+  const createLocationMutation = useMutation({
+    mutationFn: createLocation,
+    onSuccess: async (location) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'locations', 'workspace'] }),
+        queryClient.invalidateQueries({ queryKey: ['locations'] }),
+        queryClient.invalidateQueries({ queryKey: ['reporting', 'locations'] }),
+      ])
+      setName('')
+      setDescription('')
+      setIsFormOpen(false)
+      setCreatedNotice(`${location.name} berhasil ditambahkan dan siap dipakai untuk laporan.`)
+    },
+  })
+
+  function openLocationForm() {
+    setCreatedNotice('')
+    createLocationMutation.reset()
+    setIsFormOpen(true)
+  }
+
+  function closeLocationForm() {
+    if (createLocationMutation.isPending) return
+    setIsFormOpen(false)
+    createLocationMutation.reset()
+  }
+
+  function handleCreateLocation(event) {
+    event.preventDefault()
+    const trimmedName = name.trim()
+    if (trimmedName.length < 2) return
+    createLocationMutation.mutate({
+      name: trimmedName,
+      description: description.trim() || null,
+    })
+  }
+
+  useEffect(() => {
+    if (!isFormOpen) return undefined
+    nameInputRef.current?.focus()
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !createLocationMutation.isPending) setIsFormOpen(false)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isFormOpen, createLocationMutation.isPending])
 
   return (
     <DashboardShell>
       <WorkspaceHeader icon={MapPin} eyebrow="Peta tanggung jawab" title="Setiap ruang punya denyut." description="Bandingkan beban kebersihan antararea dan arahkan perhatian ke tempat yang paling membutuhkannya." />
-      <OperationsBand label="Cakupan sekolah" title={`${locations.length} area dipantau`} detail="Papan skor menggabungkan volume sampah dan penyelesaian laporan." items={[
+      <OperationsBand label="Cakupan sekolah" title={`${allLocations.length} area dipantau`} detail="Papan skor menggabungkan volume sampah dan penyelesaian laporan." items={[
         { label: 'Laporan', value: formatNumber(totalReports, 0), note: 'seluruh area' },
         { label: 'Sampah', value: formatKg(totalWaste), note: 'tercatat' },
         { label: 'Tuntas rata-rata', value: formatPercent(averageResolution), note: 'lintas area' },
       ]} />
-      <section className="workspace-toolbar"><SearchControl value={search} onChange={setSearch} placeholder="Cari ruang atau area" /><span className="workspace-toolbar__note"><Activity /> Diurutkan menurut perhatian</span></section>
+      {createdNotice && <div className="location-created-notice" role="status"><MapPin /> <span>{createdNotice}</span><button type="button" onClick={() => setCreatedNotice('')} aria-label="Tutup pemberitahuan"><X /></button></div>}
+      <section className="workspace-toolbar">
+        <SearchControl value={search} onChange={setSearch} placeholder="Cari ruang atau area" />
+        <div className="location-toolbar__actions">
+          <span className="workspace-toolbar__note"><Activity /> Diurutkan menurut perhatian</span>
+          {isAdmin && <button className="location-add-button" type="button" onClick={openLocationForm}><Plus /> Tambah lokasi</button>}
+        </div>
+      </section>
       {locationsQuery.isLoading && <LoadingPanel />}
       {locationsQuery.isError && <ErrorPanel query={locationsQuery} />}
-      {!locationsQuery.isLoading && !locationsQuery.isError && <section className="location-board">{locations.map((location, index) => { const attention = location.resolution_rate < 50; return <article className={`location-card${attention ? ' needs-attention' : ''}`} key={location.location_id}><div className="location-card__top"><span className="location-card__rank">{String(index + 1).padStart(2, '0')}</span><span className={`location-health${attention ? ' is-warning' : ''}`}><i /> {attention ? 'Perlu perhatian' : 'Terkendali'}</span></div><div className="location-card__icon"><MapPin /></div><h2>{location.location_name}</h2><div className="location-card__score"><strong>{formatPercent(location.resolution_rate)}</strong><span>laporan selesai</span></div><div className="location-card__facts"><span><Trash2 /> <strong>{location.reports}</strong><small>laporan</small></span><span><Scale /> <strong>{formatKg(location.total_waste)}</strong><small>sampah</small></span></div><span className="location-card__progress"><i style={{ width: `${location.resolution_rate}%` }} /></span></article> })}</section>}
+      {!locationsQuery.isLoading && !locationsQuery.isError && allLocations.length === 0 && (
+        <section className="location-empty">
+          <span className="location-empty__marker"><Building2 /><i><MapPin /></i></span>
+          <div><span>REGISTRI LOKASI</span><h2>Belum ada lokasi sekolah</h2><p>{isAdmin ? 'Daftarkan ruang kelas, kantin, taman, atau area lain agar pengguna dapat memilih lokasi saat membuat laporan.' : 'Lokasi hanya dapat ditambahkan oleh admin. Hubungi admin sekolah agar lokasi tersedia untuk laporan.'}</p></div>
+          {isAdmin && <button className="location-add-button" type="button" onClick={openLocationForm}><Plus /> Tambah lokasi pertama</button>}
+        </section>
+      )}
+      {!locationsQuery.isLoading && !locationsQuery.isError && allLocations.length > 0 && locations.length === 0 && (
+        <section className="location-empty location-empty--search"><Search /><div><h2>Lokasi tidak ditemukan</h2><p>Coba kata kunci lain atau tampilkan kembali semua lokasi.</p></div><button type="button" onClick={() => setSearch('')}>Hapus pencarian</button></section>
+      )}
+      {!locationsQuery.isLoading && !locationsQuery.isError && locations.length > 0 && (
+        <section className="location-board">
+          {locations.map((location, index) => {
+            const hasActivity = location.reports > 0 || location.total_waste > 0
+            const needsAttention = location.reports > 0 && location.resolution_rate < 50
+            const healthLabel = !hasActivity ? 'Belum ada data' : needsAttention ? 'Perlu perhatian' : 'Terkendali'
+            const healthClass = !hasActivity ? ' is-idle' : needsAttention ? ' is-warning' : ''
+            return (
+              <article className={`location-card${needsAttention ? ' needs-attention' : ''}`} key={location.location_id}>
+                <div className="location-card__top"><span className="location-card__rank">{String(index + 1).padStart(2, '0')}</span><span className={`location-health${healthClass}`}><i /> {healthLabel}</span></div>
+                <div className="location-card__icon"><MapPin /></div>
+                <h2>{location.location_name}</h2>
+                <div className="location-card__score"><strong>{formatPercent(location.resolution_rate)}</strong><span>laporan selesai</span></div>
+                <div className="location-card__facts"><span><Trash2 /> <strong>{location.reports}</strong><small>laporan</small></span><span><Scale /> <strong>{formatKg(location.total_waste)}</strong><small>sampah</small></span></div>
+                <span className="location-card__progress"><i style={{ width: `${location.resolution_rate}%` }} /></span>
+              </article>
+            )
+          })}
+        </section>
+      )}
+      {isFormOpen && (
+        <div className="location-dialog-backdrop" onMouseDown={closeLocationForm}>
+          <section className="location-dialog" role="dialog" aria-modal="true" aria-labelledby="location-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>REGISTRI LOKASI / BARU</span><h2 id="location-dialog-title">Daftarkan ruang baru</h2><p>Lokasi ini langsung tersedia sebagai pilihan pada formulir laporan.</p></div><button type="button" onClick={closeLocationForm} disabled={createLocationMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
+            <form onSubmit={handleCreateLocation}>
+              <label><span>Nama lokasi <strong>*</strong></span><input ref={nameInputRef} value={name} onChange={(event) => setName(event.target.value)} minLength="2" maxLength="150" required placeholder="Contoh: Kantin Utama" /></label>
+              <label><span>Deskripsi <small>Opsional</small></span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength="1000" rows="4" placeholder="Contoh: Gedung B, lantai dasar" /><small>{description.length}/1000 karakter</small></label>
+              {createLocationMutation.isError && <p className="location-form-error" role="alert">{createLocationMutation.error?.userMessage || 'Lokasi gagal ditambahkan. Silakan coba lagi.'}</p>}
+              <footer><button type="button" onClick={closeLocationForm} disabled={createLocationMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={createLocationMutation.isPending || name.trim().length < 2}>{createLocationMutation.isPending ? 'Menyimpan...' : <><Plus /> Simpan lokasi</>}</button></footer>
+            </form>
+          </section>
+        </div>
+      )}
     </DashboardShell>
   )
 }

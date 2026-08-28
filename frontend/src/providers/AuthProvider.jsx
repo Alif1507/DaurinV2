@@ -109,12 +109,14 @@ export default function AuthProvider({ children }) {
       }
       throw new Error(signUpError.message || 'Akun belum dapat dibuat.')
     }
-    if (!data.session) return { needsEmailConfirmation: true, profile: null }
+    if (!data.session) {
+      throw new Error('Pendaftaran langsung belum aktif. Hubungi administrator sekolah.')
+    }
     setSession(data.session)
     const nextProfile = await requestProfile(data.session.access_token)
     setProfile(nextProfile)
     setError('')
-    return { needsEmailConfirmation: false, profile: nextProfile }
+    return nextProfile
   }, [])
 
   const sendPasswordReset = useCallback(async (email) => {
