@@ -17,6 +17,13 @@ the MIT License. Its subclass probabilities are aggregated as follows:
 - `organic` -> `organic`
 - `recyclable_*` -> `inorganic`
 
+The API also returns the highest-scoring Recylo subclass as a detailed type.
+The frontend translates the ten subclasses into user-facing types such as
+`Plastik daur ulang`, `Kardus daur ulang`, `Baterai bekas`, and `Sampah
+organik`, together with familiar examples and disposal guidance. Items such as
+banana peels remain examples within the `organic` class; this model does not
+distinguish every individual object subtype.
+
 Source file:
 `https://github.com/ishaaqdev/Recylo-SIH/blob/main/ai/waste_model.onnx`
 

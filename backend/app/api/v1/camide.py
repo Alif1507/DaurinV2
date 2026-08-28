@@ -16,7 +16,7 @@ Services = Annotated[ServiceContainer, Depends(get_services)]
 @router.post(
     "/identify",
     response_model=SingleResponse[CamidePrediction],
-    description="Identify a waste image as Organik, Anorganik, B3, or Residu.",
+    description="Identify a detailed waste type and group it as Organik, Anorganik, B3, or Residu.",
 )
 async def identify_waste(
     current_user: CurrentUser,

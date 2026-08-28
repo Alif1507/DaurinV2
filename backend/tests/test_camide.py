@@ -55,12 +55,16 @@ class FakeStorage:
 
 
 class FakeClassifier:
-    def __init__(self, confidence=0.91, category="inorganic") -> None:
+    def __init__(self, confidence=0.91, category="inorganic", object_class=None) -> None:
         self.confidence = confidence
         self.category = category
+        self.object_class = object_class
 
     def predict(self, image, source_bytes):
-        return {"category": self.category, "confidence": self.confidence}
+        result = {"category": self.category, "confidence": self.confidence}
+        if self.object_class:
+            result.update({"object_class": self.object_class, "object_confidence": self.confidence})
+        return result
 
 
 def make_service(*, confidence=0.91, repository=None, store_images=False):
@@ -127,6 +131,8 @@ def test_endpoint_returns_prediction(client):
     )
     assert response.status_code == 200
     assert response.json()["data"]["label"] == "Anorganik"
+    assert response.json()["data"]["object_label"] == "Sampah anorganik"
+    assert "botol plastik" in response.json()["data"]["examples"]
 
 
 def test_missing_production_model_returns_503():
@@ -165,6 +171,20 @@ def test_recylo_profile_uses_nhwc_and_groups_subclasses():
     assert session.tensor.shape == (1, 224, 224, 3)
     assert result["category"] == "b3"
     assert result["confidence"] == pytest.approx(0.4)
+    assert result["object_class"] == "organic"
+    assert result["object_confidence"] == pytest.approx(0.2)
+
+
+def test_detailed_recylo_class_returns_specific_object_guidance():
+    service = make_service()
+    service.classifier = FakeClassifier(category="inorganic", object_class="recyclable_plastic")
+
+    result = service.identify(current_user(), PNG_1X1, "image/png")
+
+    assert result["object_label"] == "Plastik daur ulang"
+    assert result["object_is_confident"] is True
+    assert "botol plastik" in result["examples"]
+    assert "bank sampah" in result["disposal_guidance"]
 
 
 def test_database_failure_removes_stored_image():

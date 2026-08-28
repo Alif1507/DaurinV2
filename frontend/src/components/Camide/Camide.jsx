@@ -8,6 +8,18 @@ import './Camide.css'
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const ease = [0.22, 1, 0.36, 1]
+const recognizedTypes = [
+  ['Organik', 'kulit pisang, sisa makanan, daun'],
+  ['Plastik', 'botol, gelas, wadah plastik bersih'],
+  ['Kertas', 'lembar kertas, koran, majalah'],
+  ['Kardus', 'kotak dan karton kemasan'],
+  ['Logam', 'kaleng dan tutup logam'],
+  ['Baterai', 'baterai AA/AAA dan baterai kancing'],
+  ['E-waste', 'kabel, charger, elektronik kecil'],
+  ['Limbah medis', 'perban dan alat medis sekali pakai'],
+  ['Tajam/Beracun', 'pecahan kaca dan kemasan bahan kimia'],
+  ['Residu', 'tisu kotor, styrofoam, kemasan multilapis'],
+]
 
 function CamideLogo() {
   return (
@@ -114,7 +126,9 @@ export default function Camide() {
   const resultLabel = isPredicting
     ? 'Mengidentifikasi...'
     : prediction
-      ? prediction.is_confident ? prediction.label : 'Belum dapat dipastikan'
+      ? prediction.is_confident
+        ? prediction.object_is_confident ? prediction.object_label : `${prediction.label} — objek spesifik belum pasti`
+        : 'Belum dapat dipastikan'
       : ''
 
   return (
@@ -199,9 +213,17 @@ export default function Camide() {
 
         <div className="camide__result-row">
           <div className="camide__result" aria-live="polite">
-            <p><span>Jenis :</span> <strong>{resultLabel}</strong></p>
+            <p><span>Tipe terdeteksi :</span> <strong>{resultLabel}</strong></p>
             {prediction?.is_confident && (
-              <p><span>Akurasi :</span> <strong>{(prediction.confidence * 100).toFixed(1)}%</strong></p>
+              <>
+                <div className="camide__result-meta">
+                  <span>Kategori <strong>{prediction.label}</strong></span>
+                  <span>Keyakinan kategori <strong>{(prediction.confidence * 100).toFixed(1)}%</strong></span>
+                  {prediction.object_is_confident && <span>Keyakinan tipe <strong>{(prediction.object_confidence * 100).toFixed(1)}%</strong></span>}
+                </div>
+                <p className="camide__examples"><span>Contoh sejenis:</span> {prediction.examples.join(', ')}.</p>
+                <p className="camide__guidance"><span>Cara menangani:</span> {prediction.disposal_guidance}</p>
+              </>
             )}
             {prediction && !prediction.is_confident && (
               <small>Silakan foto ulang objek dengan lebih jelas.</small>
@@ -221,6 +243,16 @@ export default function Camide() {
         </div>
 
         <p className="camide__privacy"><ShieldCheck aria-hidden="true" /> CAMIDE mengenali sampah, bukan orang.</p>
+
+        <section className="camide__capabilities" aria-labelledby="camide-capabilities-title">
+          <header>
+            <span>Kemampuan model</span>
+            <h3 id="camide-capabilities-title">Apa saja yang dapat dikenali?</h3>
+            <p>CAMIDE mengenali 10 kelompok material berikut. Contoh membantu pengguna memahami cakupan kelas model.</p>
+          </header>
+          <div>{recognizedTypes.map(([type, examples], index) => <article key={type}><span>{String(index + 1).padStart(2, '0')}</span><strong>{type}</strong><small>{examples}</small></article>)}</div>
+          <p className="camide__capability-note">Catatan: model mengenali kelompok material, jadi “kulit pisang” akan tampil sebagai sampah organik dan “botol plastik” sebagai plastik daur ulang.</p>
+        </section>
       </motion.div>
     </section>
   )

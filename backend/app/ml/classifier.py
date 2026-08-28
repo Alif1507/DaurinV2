@@ -54,7 +54,12 @@ class WasteClassifier:
     def _mock_prediction(self, source_bytes: bytes) -> dict[str, Any]:
         # Deterministic output keeps development and tests reproducible.
         index = hashlib.sha256(source_bytes).digest()[0] % len(self.labels)
-        return {"category": self.labels[index], "confidence": 0.91}
+        return {
+            "category": self.labels[index],
+            "confidence": 0.91,
+            "object_class": self.labels[index],
+            "object_confidence": 0.91,
+        }
 
     def _get_session(self) -> Any:
         model_path = Path(self.settings.camide_model_path)
@@ -118,7 +123,18 @@ class WasteClassifier:
             for source_label, probability in zip(self.RECYLO_CLASSES, probabilities, strict=True):
                 grouped[self.RECYLO_TO_CAMIDE[source_label]] += float(probability)
             category = max(grouped, key=grouped.get)
-            return {"category": category, "confidence": grouped[category]}
+            object_index = int(np.argmax(probabilities))
+            return {
+                "category": category,
+                "confidence": grouped[category],
+                "object_class": self.RECYLO_CLASSES[object_index],
+                "object_confidence": float(probabilities[object_index]),
+            }
 
         index = int(np.argmax(probabilities))
-        return {"category": self.labels[index], "confidence": float(probabilities[index])}
+        return {
+            "category": self.labels[index],
+            "confidence": float(probabilities[index]),
+            "object_class": self.labels[index],
+            "object_confidence": float(probabilities[index]),
+        }

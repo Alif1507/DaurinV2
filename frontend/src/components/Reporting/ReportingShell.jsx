@@ -1,4 +1,4 @@
-import { ChevronLeft, ClipboardList, LogOut, Plus, School } from 'lucide-react'
+import { ChevronLeft, ClipboardList, LayoutDashboard, LogOut, Plus, School } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import useAuth from '../../hooks/useAuth'
 
@@ -20,6 +20,7 @@ export default function ReportingShell({ children, active }) {
           <Link className={active === 'history' ? 'is-active' : ''} to="/my-reports"><ClipboardList /> Laporan saya</Link>
         </nav>
         <div className="reporting-profile">
+          {['staff', 'admin'].includes(profile?.role) && <Link className="reporting-dashboard-link" to="/dashboard"><LayoutDashboard /><span>Dashboard</span></Link>}
           <span>{profile?.full_name?.slice(0, 1).toUpperCase()}</span>
           <div><strong>{profile?.full_name}</strong><small>{roleLabels[profile?.role]}</small></div>
           <button type="button" onClick={signOut} aria-label="Keluar"><LogOut /></button>

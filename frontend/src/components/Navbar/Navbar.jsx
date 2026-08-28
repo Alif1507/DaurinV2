@@ -1,4 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
+import { LayoutDashboard } from 'lucide-react'
+import useAuth from '../../hooks/useAuth'
 import './Navbar.css'
 
 const links = [
@@ -26,6 +28,8 @@ function DaurinLogo() {
 
 export default function Navbar() {
   const reduceMotion = useReducedMotion()
+  const { profile } = useAuth()
+  const canOpenDashboard = ['admin', 'staff'].includes(profile?.role)
 
   return (
     <motion.header
@@ -53,12 +57,13 @@ export default function Navbar() {
       </nav>
 
       <motion.a
-        href="/report"
+        href={canOpenDashboard ? '/dashboard' : '/report'}
         className="navbar__cta"
         whileHover={reduceMotion ? undefined : { scale: 1.035, y: -2 }}
         whileTap={reduceMotion ? undefined : { scale: 0.98 }}
       >
-        Laporkan
+        {canOpenDashboard && <LayoutDashboard aria-hidden="true" />}
+        {canOpenDashboard ? 'Dashboard' : 'Laporkan'}
       </motion.a>
     </motion.header>
   )

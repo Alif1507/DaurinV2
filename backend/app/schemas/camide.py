@@ -14,6 +14,12 @@ class CamideCategory(StrEnum):
 class CamidePrediction(BaseModel):
     category: CamideCategory
     label: str
+    object_key: str
+    object_label: str
+    object_confidence: float = Field(ge=0, le=1)
+    object_is_confident: bool
+    examples: list[str]
+    disposal_guidance: str
     confidence: float = Field(ge=0, le=1)
     is_confident: bool
     identification_id: UUID

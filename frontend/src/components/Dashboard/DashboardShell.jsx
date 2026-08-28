@@ -6,6 +6,7 @@ import {
   LogOut,
   MapPin,
   Menu,
+  Plus,
   Recycle,
   School,
   Trash2,
@@ -42,7 +43,8 @@ export default function DashboardShell({ children }) {
           <Link className="dashboard-brand" to="/"><DaurinMark /><strong>Daurin</strong></Link>
           <button type="button" onClick={() => setMenuOpen(false)} aria-label="Tutup navigasi"><X /></button>
         </div>
-        <div className="dashboard-school"><School /><div><span>RE-SCHOOL</span><strong>Pusat Kebersihan</strong></div></div>
+        <div className="dashboard-school"><School /><div><span>RE-SCHOOL</span><strong>Operations suite</strong></div></div>
+        <span className="dashboard-nav__label">Ruang kerja</span>
         <nav className="dashboard-nav" aria-label="Navigasi dashboard">
           {navigation.filter((item) => !item.adminOnly || profile?.role === 'admin').map((item) => {
             const isActive = item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)
@@ -50,6 +52,7 @@ export default function DashboardShell({ children }) {
             return <Link key={item.label} className={isActive ? 'is-active' : ''} to={item.to} onClick={() => setMenuOpen(false)}>{content}</Link>
           })}
         </nav>
+        <Link className="dashboard-sidebar__action" to="/report" onClick={() => setMenuOpen(false)}><Plus /> Buat laporan</Link>
         <div className="dashboard-user">
           <span className="dashboard-user__avatar">{profile?.full_name?.slice(0, 1).toUpperCase()}</span>
           <div><strong>{profile?.full_name}</strong><span>{profile?.role}</span></div>

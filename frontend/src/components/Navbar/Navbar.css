@@ -85,6 +85,12 @@
   transition: color 250ms ease, background-color 250ms ease, box-shadow 250ms ease;
 }
 
+.navbar__cta svg {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
+
 .navbar__cta:hover {
   color: #fff;
   background: #17652f;

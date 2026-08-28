@@ -39,8 +39,44 @@ a {
   font: inherit;
 }
 
+.route-state {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 28px;
+  color: #181c1a;
+  background: #f7faf5;
+  text-align: center;
+}
+
+.route-state::before {
+  content: "D";
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+  border-radius: 2px;
+  color: #fff;
+  background: #004328;
+  font: 500 27px/1 Georgia, "Times New Roman", serif;
+}
+
+.route-state h1 { margin: 0; color: #004328; font: 500 clamp(30px, 5vw, 44px)/1 Georgia, "Times New Roman", serif; }
+.route-state p { max-width: 520px; margin: 0; color: #626d65; line-height: 1.55; }
+.route-state__loader { width: 34px; height: 34px; border: 2px solid #d1d9cf; border-top-color: #004328; border-radius: 50%; animation: route-state-spin .8s linear infinite; }
+.route-state__actions { display: flex; gap: 8px; margin-top: 8px; }
+.route-state__actions button { min-height: 42px; padding: 0 15px; border: 1px solid #9eb3a2; border-radius: 2px; color: #004328; background: #fff; font-weight: 700; cursor: pointer; }
+.route-state__actions button:first-child { color: #fff; border-color: #004328; background: #004328; }
+
+@keyframes route-state-spin { to { transform: rotate(360deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
+
+  .route-state__loader { animation: none; }
 }

@@ -21,6 +21,74 @@ LABELS = {
     "residual": "Residu",
 }
 
+OBJECT_DETAILS = {
+    "hazardous_batteries": {
+        "label": "Baterai bekas",
+        "examples": ["baterai AA/AAA", "baterai kancing", "baterai perangkat"],
+        "guidance": "Pisahkan dari sampah biasa dan serahkan ke titik pengumpulan limbah B3.",
+    },
+    "hazardous_biomedical": {
+        "label": "Limbah medis",
+        "examples": ["masker terkontaminasi", "perban", "alat medis sekali pakai"],
+        "guidance": "Jangan disentuh langsung. Laporkan kepada petugas untuk penanganan khusus.",
+    },
+    "hazardous_e-waste": {
+        "label": "Sampah elektronik",
+        "examples": ["kabel", "charger", "perangkat elektronik kecil"],
+        "guidance": "Simpan terpisah dan kirim ke pengumpulan e-waste, bukan tempat sampah umum.",
+    },
+    "hazardous_toxic-sharp": {
+        "label": "Benda tajam atau beracun",
+        "examples": ["pecahan kaca", "benda tajam", "kemasan bahan kimia"],
+        "guidance": "Jangan dipegang langsung. Amankan area dan hubungi petugas sekolah.",
+    },
+    "non_recyclable": {
+        "label": "Sampah non-daur ulang",
+        "examples": ["tisu kotor", "styrofoam", "kemasan multilapis"],
+        "guidance": "Masukkan ke wadah residu setelah memastikan tidak tercampur bahan berbahaya.",
+    },
+    "organic": {
+        "label": "Sampah organik",
+        "examples": ["kulit pisang", "sisa makanan", "daun"],
+        "guidance": "Masukkan ke wadah organik untuk pengomposan bila fasilitas tersedia.",
+    },
+    "recyclable_cardboard": {
+        "label": "Kardus daur ulang",
+        "examples": ["kotak kardus", "karton kemasan", "dus makanan bersih"],
+        "guidance": "Bersihkan, keringkan, lalu pipihkan sebelum masuk wadah daur ulang.",
+    },
+    "recyclable_metal": {
+        "label": "Logam daur ulang",
+        "examples": ["kaleng minuman", "kaleng makanan", "tutup logam"],
+        "guidance": "Kosongkan dan bilas bila perlu, lalu masukkan ke wadah anorganik.",
+    },
+    "recyclable_paper": {
+        "label": "Kertas daur ulang",
+        "examples": ["lembar kertas", "koran", "majalah"],
+        "guidance": "Pastikan bersih dan kering sebelum masuk wadah kertas atau anorganik.",
+    },
+    "recyclable_plastic": {
+        "label": "Plastik daur ulang",
+        "examples": ["botol plastik", "gelas plastik", "wadah plastik bersih"],
+        "guidance": "Kosongkan, bilas, dan masukkan ke wadah anorganik atau bank sampah.",
+    },
+    "inorganic": {
+        "label": "Sampah anorganik",
+        "examples": ["botol plastik", "kaleng", "kertas bersih"],
+        "guidance": "Pisahkan berdasarkan material dan masukkan ke wadah daur ulang yang sesuai.",
+    },
+    "b3": {
+        "label": "Sampah B3",
+        "examples": ["baterai", "e-waste", "benda tajam"],
+        "guidance": "Jangan masukkan ke sampah umum. Serahkan kepada petugas sekolah.",
+    },
+    "residual": {
+        "label": "Sampah residu",
+        "examples": ["tisu kotor", "styrofoam", "kemasan multilapis"],
+        "guidance": "Masukkan ke wadah residu setelah dipastikan tidak berbahaya.",
+    },
+}
+
 
 class CamideService:
     def __init__(
@@ -42,6 +110,11 @@ class CamideService:
 
         category = prediction["category"]
         confidence = min(1.0, max(0.0, float(prediction["confidence"])))
+        object_key = prediction.get("object_class", category)
+        object_confidence = min(1.0, max(0.0, float(prediction.get("object_confidence", confidence))))
+        object_detail = OBJECT_DETAILS.get(object_key, OBJECT_DETAILS[category])
+        object_is_confident = object_confidence >= self.settings.camide_confidence_threshold
+        guidance_detail = object_detail if object_is_confident else OBJECT_DETAILS[category]
         identification_id = uuid4()
         image_path = None
 
@@ -73,6 +146,12 @@ class CamideService:
         return {
             "category": category,
             "label": LABELS[category],
+            "object_key": object_key,
+            "object_label": object_detail["label"],
+            "object_confidence": object_confidence,
+            "object_is_confident": object_is_confident,
+            "examples": guidance_detail["examples"],
+            "disposal_guidance": guidance_detail["guidance"],
             "confidence": confidence,
             "is_confident": payload["is_confident"],
             "identification_id": saved.get("id", str(identification_id)),

@@ -169,7 +169,7 @@ export default function DashboardPage() {
   return (
     <DashboardShell>
       <header className="dashboard-heading">
-        <div><span className="dashboard-heading__eyebrow"><Activity /> Kondisi sekolah</span><h1>Monitor. Pahami. Tindak.</h1><p>Satu pandangan untuk kebersihan, sampah, dan tindakan sekolah.</p></div>
+        <div><span className="dashboard-heading__eyebrow"><Activity /> Kondisi sekolah</span><h1>Pahami. Tindak.</h1><p>Satu pandangan untuk kebersihan, sampah, dan tindakan sekolah.</p></div>
         <div className={`dashboard-heading__status${hasConnectionError ? ' has-error' : ''}`}><span /><div><strong>{hasConnectionError ? 'Sebagian data terkendala' : 'Data terhubung'}</strong><small>FastAPI + Supabase</small></div></div>
       </header>
 
