@@ -10,7 +10,6 @@ from app.core.exceptions import AppError
 from app.ml.classifier import WasteClassifier
 from app.repositories.camide_repository import CamideRepository
 from app.schemas.user import Profile
-from app.services.storage_service import StorageService
 from app.utils.files import validate_image
 
 
@@ -94,12 +93,10 @@ class CamideService:
     def __init__(
         self,
         repository: CamideRepository,
-        storage: StorageService,
         classifier: WasteClassifier,
         settings: Settings,
     ) -> None:
         self.repository = repository
-        self.storage = storage
         self.classifier = classifier
         self.settings = settings
 
@@ -116,16 +113,6 @@ class CamideService:
         object_is_confident = object_confidence >= self.settings.camide_confidence_threshold
         guidance_detail = object_detail if object_is_confident else OBJECT_DETAILS[category]
         identification_id = uuid4()
-        image_path = None
-
-        if self.settings.camide_store_images:
-            image_path = f"camide/{current_user.id}/{identification_id}.{validated.extension}"
-            self.storage.upload_to(
-                self.settings.camide_image_bucket,
-                image_path,
-                validated.content,
-                validated.content_type,
-            )
 
         payload = {
             "id": str(identification_id),
@@ -133,15 +120,11 @@ class CamideService:
             "category": category,
             "confidence": confidence,
             "is_confident": confidence >= self.settings.camide_confidence_threshold,
-            "image_path": image_path,
+            "object_key": object_key,
+            "object_label": object_detail["label"],
             "model_version": self.settings.camide_model_version,
         }
-        try:
-            saved = self.repository.create(payload)
-        except Exception:
-            if image_path:
-                self.storage.remove_from(self.settings.camide_image_bucket, image_path)
-            raise
+        saved = self.repository.create(payload)
 
         return {
             "category": category,

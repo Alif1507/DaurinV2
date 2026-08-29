@@ -35,8 +35,6 @@ class Settings(BaseSettings):
     camide_confidence_threshold: float = Field(default=0.55, ge=0, le=1)
     camide_model_version: str = "camide-v1"
     camide_mock_classifier: bool = False
-    camide_store_images: bool = False
-    camide_image_bucket: str = "waste-identification-images"
     camide_max_dimension: int = Field(default=6000, ge=224, le=12000)
 
     @field_validator("api_v1_prefix")

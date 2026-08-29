@@ -176,7 +176,7 @@ export default function Camide() {
 
         <div className="camide__controls" aria-label="Kontrol kamera">
           {!stream && (
-            <button type="button" className="camide__control" onClick={startCamera} disabled={status === 'requesting'}>
+            <button type="button" className="camide__control camide__control--activate" onClick={startCamera} disabled={status === 'requesting'}>
               <Camera aria-hidden="true" />
               {status === 'requesting' ? 'Mengaktifkan...' : 'Aktifkan Kamera'}
             </button>

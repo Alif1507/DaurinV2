@@ -586,7 +586,19 @@ export function CamideDashboardPage() {
       </div>}
       {recentQuery.isLoading && <LoadingPanel />}
       {recentQuery.isError && <ErrorPanel query={recentQuery} />}
-      {!recentQuery.isLoading && !recentQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Jejak identifikasi</span><h2>Pembacaan terbaru</h2></div><span className="live-mark"><i /> Live preview</span></header><div className="responsive-table"><table><thead><tr><th>Objek</th><th>Kategori</th><th>Lokasi</th><th>Keyakinan</th><th>Waktu</th></tr></thead><tbody>{(recentQuery.data || []).map((scan) => <tr key={scan.id}><td><strong>{scan.item}</strong></td><td><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></td><td>{scan.location}</td><td><span className="confidence-meter"><i style={{ width: `${scan.confidence * 100}%` }} /><strong>{formatPercent(scan.confidence * 100)}</strong></span></td><td>{formatDateTime(scan.created_at)}</td></tr>)}</tbody></table><div className="mobile-records">{(recentQuery.data || []).map((scan) => <article key={scan.id}><div><strong>{scan.item}</strong><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></div><p>{scan.location} · Keyakinan {formatPercent(scan.confidence * 100)}</p><small>{formatDateTime(scan.created_at)}</small></article>)}</div></div></section>}
+      {!recentQuery.isLoading && !recentQuery.isError && (
+        <section className="dashboard-panel dashboard-panel--table workspace-table-panel">
+          <header className="dashboard-panel__header"><div><span>Jejak identifikasi</span><h2>Pembacaan terbaru</h2></div><span className="storage-safe-mark"><ShieldCheck /> Metadata saja</span></header>
+          {(recentQuery.data || []).length === 0 ? (
+            <div className="workspace-empty"><span><Bot /></span><div><h3>Belum ada hasil identifikasi</h3><p>Hasil CAMIDE berikutnya akan muncul sebagai metadata tanpa menyimpan atau menampilkan foto.</p></div><Link className="workspace-empty__link" to="/camide">Buka CAMIDE <ArrowUpRight /></Link></div>
+          ) : (
+            <div className="responsive-table">
+              <table><thead><tr><th>Objek</th><th>Kategori</th><th>Status model</th><th>Keyakinan</th><th>Waktu</th></tr></thead><tbody>{(recentQuery.data || []).map((scan) => <tr key={scan.id}><td><strong>{scan.object_label || categoryLabels[scan.category] || 'Objek sampah'}</strong><small>{scan.object_key || scan.model_version || 'Klasifikasi CAMIDE'}</small></td><td><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></td><td><span className={`camide-confidence-state${scan.is_confident ? '' : ' is-low'}`}><i /> {scan.is_confident ? 'Meyakinkan' : 'Perlu foto ulang'}</span></td><td><span className="confidence-meter"><i style={{ width: `${scan.confidence * 100}%` }} /><strong>{formatPercent(scan.confidence * 100)}</strong></span></td><td>{formatDateTime(scan.created_at)}</td></tr>)}</tbody></table>
+              <div className="mobile-records">{(recentQuery.data || []).map((scan) => <article key={scan.id}><div><strong>{scan.object_label || categoryLabels[scan.category] || 'Objek sampah'}</strong><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></div><p>{scan.is_confident ? 'Meyakinkan' : 'Perlu foto ulang'} · Keyakinan {formatPercent(scan.confidence * 100)}</p><small>{formatDateTime(scan.created_at)}</small></article>)}</div>
+            </div>
+          )}
+        </section>
+      )}
     </DashboardShell>
   )
 }

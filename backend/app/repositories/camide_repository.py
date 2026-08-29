@@ -11,6 +11,16 @@ class CamideRepository(BaseRepository):
         response = self.execute(self.table.insert(payload))
         return response.data[0]
 
+    def list_recent(self, *, limit: int) -> list[dict[str, Any]]:
+        response = self.execute(
+            self.table.select(
+                "id,user_id,category,object_key,object_label,confidence,is_confident,model_version,created_at"
+            )
+            .order("created_at", desc=True)
+            .limit(limit)
+        )
+        return response.data or []
+
     def aggregate_rows(self, *, start_date: date, end_date: date) -> list[dict[str, Any]]:
         start = datetime.combine(start_date, datetime.min.time(), tzinfo=timezone.utc)
         exclusive_end = datetime.combine(end_date + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)

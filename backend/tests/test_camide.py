@@ -1,4 +1,5 @@
 import base64
+from datetime import datetime, timezone
 from io import BytesIO
 from types import SimpleNamespace
 from uuid import uuid4
@@ -33,6 +34,16 @@ def current_user() -> Profile:
     )
 
 
+def staff_user() -> Profile:
+    return Profile(
+        id=uuid4(),
+        full_name="Camide Staff",
+        email="camide-staff@example.com",
+        role=Role.STAFF,
+        is_active=True,
+    )
+
+
 class FakeRepository:
     def __init__(self, *, fail: bool = False) -> None:
         self.fail = fail
@@ -41,17 +52,6 @@ class FakeRepository:
         if self.fail:
             raise AppError("DATABASE_ERROR", "Database operation failed", 500)
         return payload
-
-
-class FakeStorage:
-    def __init__(self) -> None:
-        self.removed = []
-
-    def upload_to(self, *args):
-        return None
-
-    def remove_from(self, bucket, path):
-        self.removed.append((bucket, path))
 
 
 class FakeClassifier:
@@ -67,16 +67,14 @@ class FakeClassifier:
         return result
 
 
-def make_service(*, confidence=0.91, repository=None, store_images=False):
+def make_service(*, confidence=0.91, repository=None):
     settings = Settings(
         app_env="test",
         max_upload_mb=5,
         camide_confidence_threshold=0.55,
-        camide_store_images=store_images,
     )
     return CamideService(
         repository or FakeRepository(),
-        FakeStorage(),
         FakeClassifier(confidence),
         settings,
     )
@@ -135,6 +133,33 @@ def test_endpoint_returns_prediction(client):
     assert "botol plastik" in response.json()["data"]["examples"]
 
 
+def test_recent_endpoint_returns_metadata_without_image(client):
+    staff = staff_user()
+
+    class FakeRecentRepository:
+        def list_recent(self, *, limit):
+            assert limit == 10
+            return [{
+                "id": str(uuid4()),
+                "user_id": str(staff.id),
+                "category": "inorganic",
+                "object_key": "recyclable_plastic",
+                "object_label": "Plastik daur ulang",
+                "confidence": 0.93,
+                "is_confident": True,
+                "model_version": "camide-v1",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }]
+
+    app.dependency_overrides[get_current_user] = lambda: staff
+    app.dependency_overrides[get_services] = lambda: SimpleNamespace(camide_repository=FakeRecentRepository())
+    response = client.get("/api/v1/camide/recent?limit=10")
+
+    assert response.status_code == 200
+    assert response.json()["data"][0]["object_label"] == "Plastik daur ulang"
+    assert "image_path" not in response.json()["data"][0]
+
+
 def test_missing_production_model_returns_503():
     settings = Settings(
         app_env="test",
@@ -187,9 +212,24 @@ def test_detailed_recylo_class_returns_specific_object_guidance():
     assert "bank sampah" in result["disposal_guidance"]
 
 
-def test_database_failure_removes_stored_image():
-    service = make_service(repository=FakeRepository(fail=True), store_images=True)
+def test_database_payload_contains_metadata_without_image_path():
+    class CapturingRepository(FakeRepository):
+        payload = None
+
+        def create(self, payload):
+            self.payload = payload
+            return payload
+
+    repository = CapturingRepository()
+    service = make_service(repository=repository)
+    service.identify(current_user(), PNG_1X1, "image/png")
+
+    assert repository.payload["object_label"] == "Sampah anorganik"
+    assert "image_path" not in repository.payload
+
+
+def test_database_failure_does_not_attempt_image_storage():
+    service = make_service(repository=FakeRepository(fail=True))
     with pytest.raises(AppError) as error:
         service.identify(current_user(), PNG_1X1, "image/png")
     assert error.value.code == "DATABASE_ERROR"
-    assert len(service.storage.removed) == 1

@@ -179,6 +179,7 @@ Run these files in numeric order using the Supabase SQL Editor or CLI:
 2. `backend/supabase/migrations/002_camide.sql`
 3. `backend/supabase/migrations/003_dashboard_indexes.sql`
 4. `backend/supabase/migrations/004_report_resolution_proof.sql`
+5. `backend/supabase/migrations/005_camide_metadata_history.sql`
 
 The migrations create the application tables, indexes, private storage buckets,
 and access restrictions required by the backend.
@@ -210,6 +211,11 @@ recyclable plastic, cardboard, metal, batteries, or e-waste. The UI translates
 these types into Indonesian labels, familiar examples such as plastic bottles
 and banana peels, confidence values, and disposal guidance. The current model
 recognizes material groups rather than every individual object subtype.
+
+CAMIDE processes captures in memory and stores only identification metadata
+(object label, category, confidence, model version, user, and timestamp). The
+captured image is never written to Supabase Storage or returned by the history
+API.
 
 For local API/UI testing without the model, set the following in
 `backend/.env`:

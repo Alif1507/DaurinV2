@@ -67,7 +67,7 @@ class ServiceContainer:
 
     @cached_property
     def camide(self) -> CamideService:
-        return CamideService(self.camide_repository, self.storage, self.classifier, self.settings)
+        return CamideService(self.camide_repository, self.classifier, self.settings)
 
     @cached_property
     def reports(self) -> ReportService:

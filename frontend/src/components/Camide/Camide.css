@@ -151,7 +151,8 @@
   font-size: 14px;
   font-weight: 750;
   cursor: pointer;
-  transition: color 220ms ease, background-color 220ms ease, border-color 220ms ease;
+  transition: color 220ms ease, background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+  color:white;
 }
 
 .camide__control svg {
@@ -393,7 +394,29 @@
   font-size: 12px;
 }
 .camide__control:hover:not(:disabled),
-.camide__control--capture { border-color: #004328; background: #004328; }
+.camide__control--capture { border-color: #004328; background: #004328; color: #fff; }
+.camide__control--activate {
+  min-width: 188px;
+  border: 2px solid #72d35b;
+  color: #fff;
+  background: #004328;
+  box-shadow: 0 5px 0 #002d1b, 0 10px 24px rgba(0, 67, 40, .2);
+  font-weight: 850;
+  letter-spacing: .015em;
+}
+.camide__control--activate:hover:not(:disabled) {
+  border-color: #96e67c;
+  color: #fff;
+  background: #0b5c39;
+  box-shadow: 0 3px 0 #002d1b, 0 8px 20px rgba(0, 67, 40, .24);
+  transform: translateY(2px);
+}
+.camide__control--activate:disabled {
+  border-color: #8da995;
+  color: #e4ebe6;
+  background: #466b57;
+  box-shadow: 0 3px 0 #294a39;
+}
 .camide__result-row { margin-top: 30px; padding-top: 24px; border-top: 1px solid #d1d9cf; }
 .camide__result p { font-family: Georgia, "Times New Roman", serif; }
 .camide__identify {
@@ -414,6 +437,7 @@
   .camide__preview { border-radius: 4px; }
   .camide__result-row { grid-template-columns: 1fr; text-align: center; }
   .camide__identify { width: 100%; }
+  .camide__control--activate { width: min(100%, 280px); }
   .camide__result-meta { justify-content: center; }
   .camide__examples,
   .camide__guidance { text-align: left; }
