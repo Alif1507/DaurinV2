@@ -7,6 +7,35 @@ manage reports, waste records, locations, users, and operational analytics.
 The project includes a React frontend, a FastAPI backend, Supabase
 authentication/database/storage, and CAMIDE image-based waste classification.
 
+> [!IMPORTANT]
+> This repository is a reusable template for a school reporting website. It is
+> not preconfigured for one particular school. Each school administrator must
+> configure its own locations, users, roles, sorting guidance, and operational
+> data before the website is used by students and teachers.
+
+## Template scope
+
+Daurin currently assumes **one school per deployment and Supabase project**.
+The database does not include tenant isolation for multiple schools in a single
+deployment. Schools that require separate data must use separate deployments,
+or extend the schema with a school/tenant identifier and matching access rules.
+
+School-specific data is intentionally not treated as universal seed data:
+
+- Locations such as classrooms, canteens, toilets, gardens, laboratories, and
+  collection points must reflect the real school site.
+- Admin and staff accounts must be assigned only to trusted school personnel.
+- Waste-sorting guidance and CAMIDE operating instructions should follow the
+  facilities and procedures available at that school.
+- Reports, measurements, dashboard metrics, and uploaded photos belong to the
+  school operating that deployment.
+- School names, contact details, policies, and other public-facing copy should
+  be reviewed before a production launch.
+
+The application can start with no locations or operational records. This is
+expected: the first administrator is responsible for completing the initial
+school setup described below.
+
 ## Features
 
 - Public Daurin landing page and waste-sorting education
@@ -287,6 +316,31 @@ After the first admin exists, user roles can be managed through the protected
 admin API. Inactive profiles are denied access even when their Supabase token is
 otherwise valid.
 
+### Configure the school data
+
+After creating the first administrator, complete this onboarding sequence for
+each school deployment:
+
+1. Sign in as the administrator and open **Dashboard → Locations**.
+2. Add every location that students and teachers may select in a report. Use
+   names that are familiar at that school, for example `Kantin Utama`,
+   `Laboratorium IPA`, or `Kelas 9A`.
+3. Review registered users in **Dashboard → Users**. Assign trusted accounts to
+   the `staff` or `admin` role through the protected Users API (available in
+   Swagger) or the documented Supabase administrator workflow.
+4. Review the waste-sorting guides through the protected Guides API, then check
+   CAMIDE labels and local handling procedures before enabling daily use.
+5. Ask staff to submit a test report with a photo, process it to completion, and
+   confirm that the report, signed photo preview, and dashboard totals appear
+   correctly.
+6. Remove test data through an authorized administrator workflow before launch
+   if it should not be included in the school's operational history.
+
+Locations are managed by the administrator; staff can view location performance
+but cannot create locations. Students and teachers should begin reporting only
+after the administrator has completed the location list. Whenever rooms or
+facilities change, the school administrator must keep this list up to date.
+
 ## Frontend routes
 
 | Route | Access | Purpose |
@@ -294,7 +348,6 @@ otherwise valid.
 | `/` | Public | Landing page and waste education |
 | `/login` | Public | Sign in |
 | `/register` | Public | Student account registration |
-| `/reset-password` | Recovery session | Set a new password |
 | `/report` | Authenticated | Create a cleanliness report |
 | `/my-reports` | Authenticated | Track personal reports |
 | `/camide` | Authenticated | Camera-based waste identification |
