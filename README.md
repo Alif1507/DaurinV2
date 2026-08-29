@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/logo.png" alt="Daurin logo" width="140">
+</p>
+
 # Daurin
 
 Daurin is a school cleanliness and waste-management platform. Students and
