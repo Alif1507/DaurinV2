@@ -4,6 +4,8 @@ import { Check, CheckCircle2, Clock3, Image, MapPin, Plus, RotateCcw, Trash2 } f
 import { Link, useLocation } from 'react-router-dom'
 import ReportingShell from '../../components/Reporting/ReportingShell'
 import { PanelError, PanelLoading } from '../../components/Dashboard/DashboardStates'
+import DataPagination from '../../components/Pagination/DataPagination'
+import useClientPagination from '../../hooks/useClientPagination'
 import { getMyReports, getReportingLocations } from '../../services/reporting.service'
 import { problemLabels, statusLabels } from '../../utils/formatters'
 import './Reporting.css'
@@ -27,6 +29,7 @@ export default function MyReportsPage() {
   const locationsQuery = useQuery({ queryKey: ['reporting', 'locations'], queryFn: getReportingLocations })
   const locationNames = useMemo(() => Object.fromEntries((locationsQuery.data || []).map((item) => [item.id, item.name])), [locationsQuery.data])
   const reports = useMemo(() => (reportsQuery.data || []).filter((report) => filter === 'all' || report.status === filter), [filter, reportsQuery.data])
+  const reportPagination = useClientPagination(reports, 5, filter)
 
   return (
     <ReportingShell active="history">
@@ -36,7 +39,7 @@ export default function MyReportsPage() {
       {reportsQuery.isLoading && <section className="student-report-state"><PanelLoading /></section>}
       {reportsQuery.isError && <section className="student-report-state"><PanelError message={reportsQuery.error?.userMessage} onRetry={reportsQuery.refetch} /></section>}
       {!reportsQuery.isLoading && !reportsQuery.isError && reports.length === 0 && <section className="student-report-empty"><Trash2 /><h2>Belum ada laporan di status ini.</h2><p>Pilih status lain atau buat laporan baru saat menemukan kondisi yang perlu ditangani.</p><Link to="/report"><Plus /> Buat laporan</Link></section>}
-      <section className="student-report-list">{reports.map((report) => (
+      <section className="student-report-list">{reportPagination.paginatedItems.map((report) => (
         <article className="student-report-card" key={report.id}>
           <header><div><span className="report-id">#{report.id.slice(-7).toUpperCase()}</span><h2>{problemLabels[report.problem_type]}</h2><p><MapPin /> {locationNames[report.location_id] || 'Lokasi sekolah'}<span />{formatReportDate(report.created_at)}</p></div><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></header>
           <p className="student-report-description">{report.description || 'Tidak ada deskripsi tambahan.'}</p>
@@ -50,6 +53,7 @@ export default function MyReportsPage() {
           )}
         </article>
       ))}</section>
+      <DataPagination {...reportPagination} totalItems={reports.length} onPageChange={reportPagination.setPage} label="laporan" />
     </ReportingShell>
   )
 }

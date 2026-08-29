@@ -28,7 +28,7 @@ export const getWasteTrend = (params) => getData('/dashboard/waste-trend', param
 export const getCamideSummary = (params) => getData('/dashboard/camide-summary', params)
 export const getCamideTrend = (params) => getData('/dashboard/camide-trend', params)
 export const getLocationPerformance = (params) => getData('/dashboard/locations', params)
-export const getCamideRecent = (limit = 25) => getData('/camide/recent', { limit })
+export const getCamideRecent = (limit = 100) => getData('/camide/recent', { limit })
 
 export const getReports = (params = {}) => getData('/reports', { page: 1, limit: 100, ...params })
 

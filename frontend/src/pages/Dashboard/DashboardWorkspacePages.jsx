@@ -28,7 +28,9 @@ import {
 import { Link } from 'react-router-dom'
 import DashboardShell from '../../components/Dashboard/DashboardShell'
 import { PanelError, PanelLoading } from '../../components/Dashboard/DashboardStates'
+import DataPagination from '../../components/Pagination/DataPagination'
 import useAuth from '../../hooks/useAuth'
+import useClientPagination from '../../hooks/useClientPagination'
 import {
   createLocation,
   createWasteRecord,
@@ -142,6 +144,7 @@ export function ReportsDashboardPage() {
     const phrase = `${problemLabels[report.problem_type] || ''} ${report.description || ''} ${locationNames[report.location_id] || ''}`.toLowerCase()
     return (status === 'all' || report.status === status) && phrase.includes(search.toLowerCase())
   }), [locationNames, reportsQuery.data, search, status])
+  const reportPagination = useClientPagination(reports, 15, `${status}:${search}`)
   const summary = summaryQuery.data?.reports
   const openReports = (reportsQuery.data || []).filter((report) => report.status !== 'resolved').length
 
@@ -306,12 +309,15 @@ export function ReportsDashboardPage() {
           {reports.length === 0 ? (
             <div className="workspace-empty"><span><ClipboardCheck /></span><div><h3>{(reportsQuery.data || []).length ? 'Tidak ada laporan pada filter ini' : 'Antrean laporan masih kosong'}</h3><p>{(reportsQuery.data || []).length ? 'Ubah filter atau pencarian untuk melihat laporan lain.' : 'Laporan dari siswa dan guru akan muncul di sini untuk mulai ditangani.'}</p></div>{(reportsQuery.data || []).length > 0 && <button type="button" onClick={() => { setSearch(''); setStatus('all') }}>Tampilkan semua</button>}</div>
           ) : (
+            <>
             <div className="responsive-table">
               <table><thead><tr><th>Masalah</th><th>Lampiran</th><th>Lokasi</th><th>Waktu</th><th>Status</th><th>Langkah berikut</th></tr></thead><tbody>
-                {reports.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description || 'Tanpa keterangan tambahan'}</small></td><td>{renderReportPhotos(report)}</td><td>{locationNames[report.location_id] || 'Lokasi tidak aktif'}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td>{report.status === 'reported' ? <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => { setNotice(''); startReportMutation.mutate(report.id) }}>{startReportMutation.isPending && startReportMutation.variables === report.id ? 'Mengambil...' : <><Play /> Mulai tangani</>}</button> : report.status === 'in_progress' ? <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button> : <span className="next-step next-step--done"><CheckCircle2 /> Tuntas</span>}</td></tr>)}
+                {reportPagination.paginatedItems.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description || 'Tanpa keterangan tambahan'}</small></td><td>{renderReportPhotos(report)}</td><td>{locationNames[report.location_id] || 'Lokasi tidak aktif'}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td>{report.status === 'reported' ? <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => { setNotice(''); startReportMutation.mutate(report.id) }}>{startReportMutation.isPending && startReportMutation.variables === report.id ? 'Mengambil...' : <><Play /> Mulai tangani</>}</button> : report.status === 'in_progress' ? <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button> : <span className="next-step next-step--done"><CheckCircle2 /> Tuntas</span>}</td></tr>)}
               </tbody></table>
-              <div className="mobile-records">{reports.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description || 'Tanpa keterangan tambahan'}</p><small>{locationNames[report.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(report.created_at)}</small>{renderReportPhotos(report, true)}{report.status === 'reported' && <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => startReportMutation.mutate(report.id)}><Play /> Mulai tangani</button>}{report.status === 'in_progress' && <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button>}</article>)}</div>
+              <div className="mobile-records">{reportPagination.paginatedItems.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description || 'Tanpa keterangan tambahan'}</p><small>{locationNames[report.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(report.created_at)}</small>{renderReportPhotos(report, true)}{report.status === 'reported' && <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => startReportMutation.mutate(report.id)}><Play /> Mulai tangani</button>}{report.status === 'in_progress' && <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button>}</article>)}</div>
             </div>
+            <DataPagination {...reportPagination} totalItems={reports.length} onPageChange={reportPagination.setPage} label="laporan" />
+            </>
           )}
         </section>
       )}
@@ -365,6 +371,7 @@ export function WasteDashboardPage() {
   const locations = useMemo(() => locationsQuery.data || [], [locationsQuery.data])
   const locationNames = useMemo(() => Object.fromEntries((locationsQuery.data || []).map((location) => [location.id, location.name])), [locationsQuery.data])
   const records = useMemo(() => (wasteQuery.data || []).filter((record) => (locationNames[record.location_id] || '').toLowerCase().includes(search.toLowerCase())), [locationNames, search, wasteQuery.data])
+  const wastePagination = useClientPagination(records, 15, search)
   const totals = useMemo(() => records.reduce((acc, record) => ({
     organic: acc.organic + record.organic_weight,
     inorganic: acc.inorganic + record.inorganic_weight,
@@ -527,10 +534,13 @@ export function WasteDashboardPage() {
           {records.length === 0 ? (
             <div className="workspace-empty"><span><Scale /></span><div><h3>{(wasteQuery.data || []).length ? 'Lokasi tidak ditemukan' : 'Belum ada hasil penimbangan'}</h3><p>{(wasteQuery.data || []).length ? 'Hapus pencarian untuk melihat semua catatan.' : locations.length ? 'Catat berat sampah organik, anorganik, dan residu setelah pengumpulan.' : 'Admin perlu menambahkan lokasi sebelum staf dapat mencatat penimbangan.'}</p></div>{(wasteQuery.data || []).length ? <button type="button" onClick={() => setSearch('')}>Tampilkan semua</button> : locations.length > 0 && <button type="button" onClick={() => openWasteForm()}>Catat pertama</button>}</div>
           ) : (
+            <>
             <div className="responsive-table">
-              <table><thead><tr><th>Tanggal</th><th>Lokasi</th><th>Organik</th><th>Anorganik</th><th>Residu</th><th>Total</th><th>Aksi</th></tr></thead><tbody>{records.map((record) => { const total = record.organic_weight + record.inorganic_weight + record.residual_weight; const canManage = canManageWasteRecord(record); return <tr key={record.id}><td>{formatShortDate(record.record_date)}</td><td><strong>{locationNames[record.location_id]}</strong><small>{record.notes || 'Tanpa catatan'}</small></td><td>{formatKg(record.organic_weight)}</td><td>{formatKg(record.inorganic_weight)}</td><td>{formatKg(record.residual_weight)}</td><td><strong>{formatKg(total)}</strong></td><td>{canManage ? <div className="record-actions"><button type="button" onClick={() => openWasteForm(record)} aria-label={`Edit catatan ${formatShortDate(record.record_date)}`}><Pencil /> Edit</button><button type="button" className="is-danger" onClick={() => requestDeleteWasteRecord(record)} aria-label={`Hapus catatan ${formatShortDate(record.record_date)}`}><Trash2 /> Hapus</button></div> : <span className="record-readonly"><ShieldCheck /> Milik staf lain</span>}</td></tr> })}</tbody></table>
-              <div className="mobile-records">{records.map((record) => { const canManage = canManageWasteRecord(record); return <article key={record.id}><div><strong>{locationNames[record.location_id]}</strong><strong>{formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)}</strong></div><p>Organik {formatKg(record.organic_weight)} · Anorganik {formatKg(record.inorganic_weight)} · Residu {formatKg(record.residual_weight)}</p>{record.notes && <p className="mobile-record-note">{record.notes}</p>}<small>{formatShortDate(record.record_date)}</small>{canManage && <div className="record-actions record-actions--mobile"><button type="button" onClick={() => openWasteForm(record)}><Pencil /> Edit</button><button type="button" className="is-danger" onClick={() => requestDeleteWasteRecord(record)}><Trash2 /> Hapus</button></div>}</article> })}</div>
+              <table><thead><tr><th>Tanggal</th><th>Lokasi</th><th>Organik</th><th>Anorganik</th><th>Residu</th><th>Total</th><th>Aksi</th></tr></thead><tbody>{wastePagination.paginatedItems.map((record) => { const total = record.organic_weight + record.inorganic_weight + record.residual_weight; const canManage = canManageWasteRecord(record); return <tr key={record.id}><td>{formatShortDate(record.record_date)}</td><td><strong>{locationNames[record.location_id]}</strong><small>{record.notes || 'Tanpa catatan'}</small></td><td>{formatKg(record.organic_weight)}</td><td>{formatKg(record.inorganic_weight)}</td><td>{formatKg(record.residual_weight)}</td><td><strong>{formatKg(total)}</strong></td><td>{canManage ? <div className="record-actions"><button type="button" onClick={() => openWasteForm(record)} aria-label={`Edit catatan ${formatShortDate(record.record_date)}`}><Pencil /> Edit</button><button type="button" className="is-danger" onClick={() => requestDeleteWasteRecord(record)} aria-label={`Hapus catatan ${formatShortDate(record.record_date)}`}><Trash2 /> Hapus</button></div> : <span className="record-readonly"><ShieldCheck /> Milik staf lain</span>}</td></tr> })}</tbody></table>
+              <div className="mobile-records">{wastePagination.paginatedItems.map((record) => { const canManage = canManageWasteRecord(record); return <article key={record.id}><div><strong>{locationNames[record.location_id]}</strong><strong>{formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)}</strong></div><p>Organik {formatKg(record.organic_weight)} · Anorganik {formatKg(record.inorganic_weight)} · Residu {formatKg(record.residual_weight)}</p>{record.notes && <p className="mobile-record-note">{record.notes}</p>}<small>{formatShortDate(record.record_date)}</small>{canManage && <div className="record-actions record-actions--mobile"><button type="button" onClick={() => openWasteForm(record)}><Pencil /> Edit</button><button type="button" className="is-danger" onClick={() => requestDeleteWasteRecord(record)}><Trash2 /> Hapus</button></div>}</article> })}</div>
             </div>
+            <DataPagination {...wastePagination} totalItems={records.length} onPageChange={wastePagination.setPage} label="catatan" />
+            </>
           )}
         </section>
       )}
@@ -569,6 +579,8 @@ export function CamideDashboardPage() {
   const recentQuery = useQuery({ queryKey: ['camide', 'recent'], queryFn: getCamideRecent })
   const summary = summaryQuery.data
   const categories = summary ? Object.entries(summary.categories) : []
+  const recentScans = useMemo(() => recentQuery.data || [], [recentQuery.data])
+  const camidePagination = useClientPagination(recentScans, 15)
 
   return (
     <DashboardShell>
@@ -592,10 +604,13 @@ export function CamideDashboardPage() {
           {(recentQuery.data || []).length === 0 ? (
             <div className="workspace-empty"><span><Bot /></span><div><h3>Belum ada hasil identifikasi</h3><p>Hasil CAMIDE berikutnya akan muncul sebagai metadata tanpa menyimpan atau menampilkan foto.</p></div><Link className="workspace-empty__link" to="/camide">Buka CAMIDE <ArrowUpRight /></Link></div>
           ) : (
+            <>
             <div className="responsive-table">
-              <table><thead><tr><th>Objek</th><th>Kategori</th><th>Status model</th><th>Keyakinan</th><th>Waktu</th></tr></thead><tbody>{(recentQuery.data || []).map((scan) => <tr key={scan.id}><td><strong>{scan.object_label || categoryLabels[scan.category] || 'Objek sampah'}</strong><small>{scan.object_key || scan.model_version || 'Klasifikasi CAMIDE'}</small></td><td><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></td><td><span className={`camide-confidence-state${scan.is_confident ? '' : ' is-low'}`}><i /> {scan.is_confident ? 'Meyakinkan' : 'Perlu foto ulang'}</span></td><td><span className="confidence-meter"><i style={{ width: `${scan.confidence * 100}%` }} /><strong>{formatPercent(scan.confidence * 100)}</strong></span></td><td>{formatDateTime(scan.created_at)}</td></tr>)}</tbody></table>
-              <div className="mobile-records">{(recentQuery.data || []).map((scan) => <article key={scan.id}><div><strong>{scan.object_label || categoryLabels[scan.category] || 'Objek sampah'}</strong><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></div><p>{scan.is_confident ? 'Meyakinkan' : 'Perlu foto ulang'} · Keyakinan {formatPercent(scan.confidence * 100)}</p><small>{formatDateTime(scan.created_at)}</small></article>)}</div>
+              <table><thead><tr><th>Objek</th><th>Kategori</th><th>Status model</th><th>Keyakinan</th><th>Waktu</th></tr></thead><tbody>{camidePagination.paginatedItems.map((scan) => <tr key={scan.id}><td><strong>{scan.object_label || categoryLabels[scan.category] || 'Objek sampah'}</strong><small>{scan.object_key || scan.model_version || 'Klasifikasi CAMIDE'}</small></td><td><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></td><td><span className={`camide-confidence-state${scan.is_confident ? '' : ' is-low'}`}><i /> {scan.is_confident ? 'Meyakinkan' : 'Perlu foto ulang'}</span></td><td><span className="confidence-meter"><i style={{ width: `${scan.confidence * 100}%` }} /><strong>{formatPercent(scan.confidence * 100)}</strong></span></td><td>{formatDateTime(scan.created_at)}</td></tr>)}</tbody></table>
+              <div className="mobile-records">{camidePagination.paginatedItems.map((scan) => <article key={scan.id}><div><strong>{scan.object_label || categoryLabels[scan.category] || 'Objek sampah'}</strong><span className={`category-chip category-chip--${scan.category}`}>{categoryLabels[scan.category]}</span></div><p>{scan.is_confident ? 'Meyakinkan' : 'Perlu foto ulang'} · Keyakinan {formatPercent(scan.confidence * 100)}</p><small>{formatDateTime(scan.created_at)}</small></article>)}</div>
             </div>
+            <DataPagination {...camidePagination} totalItems={recentScans.length} onPageChange={camidePagination.setPage} label="identifikasi" />
+            </>
           )}
         </section>
       )}
@@ -809,6 +824,7 @@ export function UsersDashboardPage() {
     const matchesRole = role === 'all' || user.role === role
     return matchesRole && `${user.full_name} ${user.email}`.toLowerCase().includes(search.toLowerCase())
   }), [role, search, usersQuery.data])
+  const userPagination = useClientPagination(users, 15, `${role}:${search}`)
   const allUsers = usersQuery.data || []
   const activeUsers = allUsers.filter((user) => user.is_active).length
 
@@ -826,7 +842,7 @@ export function UsersDashboardPage() {
       </section>
       {usersQuery.isLoading && <LoadingPanel />}
       {usersQuery.isError && <ErrorPanel query={usersQuery} />}
-      {!usersQuery.isLoading && !usersQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Daftar akses</span><h2>{users.length} pengguna</h2></div><span className="permission-note"><ShieldCheck /> Peran terverifikasi</span></header><div className="responsive-table"><table><thead><tr><th>Pengguna</th><th>Peran</th><th>Status</th><th>Aktivitas terakhir</th><th>Akses utama</th></tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><span className="user-cell"><i>{user.full_name.slice(0, 1)}</i><span><strong>{user.full_name}</strong><small>{user.email}</small></span></span></td><td><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></td><td><span className={`account-state${user.is_active ? '' : ' is-inactive'}`}><i /> {user.is_active ? 'Aktif' : 'Nonaktif'}</span></td><td>{formatDateTime(user.last_seen)}</td><td>{user.role === 'admin' ? 'Semua pengaturan' : user.role === 'staff' ? 'Operasional' : user.role === 'teacher' ? 'Pantau & lapor' : 'Lapor & CAMIDE'}</td></tr>)}</tbody></table><div className="mobile-records">{users.map((user) => <article key={user.id}><div><strong>{user.full_name}</strong><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></div><p>{user.email}</p><small>{user.is_active ? 'Aktif' : 'Nonaktif'} · Terakhir {formatDateTime(user.last_seen)}</small></article>)}</div></div></section>}
+      {!usersQuery.isLoading && !usersQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Daftar akses</span><h2>{users.length} pengguna</h2></div><span className="permission-note"><ShieldCheck /> Peran terverifikasi</span></header><div className="responsive-table"><table><thead><tr><th>Pengguna</th><th>Peran</th><th>Status</th><th>Aktivitas terakhir</th><th>Akses utama</th></tr></thead><tbody>{userPagination.paginatedItems.map((user) => <tr key={user.id}><td><span className="user-cell"><i>{user.full_name.slice(0, 1)}</i><span><strong>{user.full_name}</strong><small>{user.email}</small></span></span></td><td><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></td><td><span className={`account-state${user.is_active ? '' : ' is-inactive'}`}><i /> {user.is_active ? 'Aktif' : 'Nonaktif'}</span></td><td>{formatDateTime(user.last_seen)}</td><td>{user.role === 'admin' ? 'Semua pengaturan' : user.role === 'staff' ? 'Operasional' : user.role === 'teacher' ? 'Pantau & lapor' : 'Lapor & CAMIDE'}</td></tr>)}</tbody></table><div className="mobile-records">{userPagination.paginatedItems.map((user) => <article key={user.id}><div><strong>{user.full_name}</strong><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></div><p>{user.email}</p><small>{user.is_active ? 'Aktif' : 'Nonaktif'} · Terakhir {formatDateTime(user.last_seen)}</small></article>)}</div></div><DataPagination {...userPagination} totalItems={users.length} onPageChange={userPagination.setPage} label="pengguna" /></section>}
     </DashboardShell>
   )
 }
