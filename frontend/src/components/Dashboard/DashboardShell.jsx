@@ -25,10 +25,6 @@ const navigation = [
   { label: 'Pengguna', icon: Users, to: '/dashboard/users', adminOnly: true },
 ]
 
-function DaurinMark() {
-  return <span className="dashboard-brand__mark"><span /><span /><span /></span>
-}
-
 export default function DashboardShell({ children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
@@ -40,7 +36,7 @@ export default function DashboardShell({ children }) {
       {menuOpen && <button type="button" className="dashboard-sidebar-backdrop" aria-label="Tutup navigasi" onClick={() => setMenuOpen(false)} />}
       <aside className={`dashboard-sidebar${menuOpen ? ' is-open' : ''}`}>
         <div className="dashboard-sidebar__head">
-          <Link className="dashboard-brand" to="/"><DaurinMark /><strong>Daurin</strong></Link>
+          <Link className="dashboard-brand" to="/"><img className="dashboard-brand__logo" src="/logo.png" alt="" aria-hidden="true" /><strong>Daurin</strong></Link>
           <button type="button" onClick={() => setMenuOpen(false)} aria-label="Tutup navigasi"><X /></button>
         </div>
         <div className="dashboard-school"><School /><div><span>DAURIN</span><strong>Operations suite</strong></div></div>

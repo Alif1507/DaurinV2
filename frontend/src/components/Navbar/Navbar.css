@@ -10,12 +10,21 @@
   padding-top: env(safe-area-inset-top, 0px);
   padding-right: max(clamp(28px, 4.6vw, 76px), env(safe-area-inset-right, 0px));
   padding-left: max(clamp(28px, 4.6vw, 76px), env(safe-area-inset-left, 0px));
-  border-bottom: 1px solid rgba(7, 87, 53, 0.09);
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: blur(0) saturate(1);
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  pointer-events: none;
+  transition: background-color 260ms ease, border-color 260ms ease, box-shadow 260ms ease, backdrop-filter 260ms ease;
+}
+
+.navbar--solid {
+  border-bottom-color: rgba(7, 87, 53, 0.09);
   background: rgba(254, 254, 253, 0.82);
   box-shadow: 0 10px 34px rgba(9, 68, 43, 0.06);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  pointer-events: none;
 }
 
 .navbar > * {
@@ -199,4 +208,8 @@
     border-radius: 12px;
     font-size: 13px;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar { transition: none; }
 }

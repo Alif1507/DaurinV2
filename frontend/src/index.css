@@ -56,16 +56,13 @@ a {
 }
 
 .route-state::before {
-  content: "D";
-  width: 46px;
-  height: 46px;
-  display: grid;
-  place-items: center;
+  content: "";
+  width: 54px;
+  height: 54px;
+  display: block;
   margin-bottom: 8px;
-  border-radius: 2px;
-  color: #fff;
-  background: #004328;
-  font: 500 27px/1 Georgia, "Times New Roman", serif;
+  background: url('/logo.png') center / contain no-repeat;
+  filter: drop-shadow(0 8px 14px rgba(0, 67, 40, .12));
 }
 
 .route-state h1 { margin: 0; color: #004328; font: 500 clamp(30px, 5vw, 44px)/1 Georgia, "Times New Roman", serif; }

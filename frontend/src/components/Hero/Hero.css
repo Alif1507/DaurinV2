@@ -76,7 +76,7 @@
   align-items: flex-end;
   justify-content: center;
   gap: clamp(3px, 0.5vw, 8px);
-  margin: clamp(-34px, -2.2vw, -18px) 0 0;
+  margin: clamp(10px, 1.2vw, 18px) 0 0;
   filter: drop-shadow(0 14px 11px rgba(35, 53, 28, 0.13));
   line-height: 0;
   pointer-events: auto;
@@ -239,7 +239,7 @@
   .hero__title-art {
     width: min(94vw, 100%);
     gap: 2px;
-    margin-top: -22px;
+    margin-top: 8px;
   }
 
   .hero__title-art img {
@@ -277,7 +277,7 @@
 
   .hero__title-art {
     gap: 1px;
-    margin-top: -14px;
+    margin-top: 6px;
   }
 
   .hero__title-art img {
@@ -324,7 +324,7 @@
 
   .hero__title-art {
     gap: 2px;
-    margin-top: -12px;
+    margin-top: 4px;
   }
 
   .hero__title-art img {

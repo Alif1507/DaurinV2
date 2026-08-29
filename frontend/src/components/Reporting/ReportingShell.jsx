@@ -5,7 +5,7 @@ import useAuth from '../../hooks/useAuth'
 const roleLabels = { student: 'Siswa', teacher: 'Guru', staff: 'Staf', admin: 'Admin' }
 
 function ReportingMark() {
-  return <span className="reporting-mark" aria-hidden="true"><span /><span /><span /></span>
+  return <img className="reporting-mark" src="/logo.png" alt="" aria-hidden="true" />
 }
 
 export default function ReportingShell({ children, active }) {

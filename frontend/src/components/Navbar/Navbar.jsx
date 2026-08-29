@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { LayoutDashboard } from 'lucide-react'
 import useAuth from '../../hooks/useAuth'
@@ -13,12 +14,31 @@ const links = [
 
 export default function Navbar() {
   const reduceMotion = useReducedMotion()
+  const [isPastHero, setIsPastHero] = useState(false)
   const { profile } = useAuth()
   const canOpenDashboard = ['admin', 'staff'].includes(profile?.role)
 
+  useEffect(() => {
+    const hero = document.getElementById('top')
+    if (!hero) return undefined
+
+    const updateNavbar = () => {
+      const navbarHeight = document.querySelector('.navbar')?.offsetHeight || 0
+      setIsPastHero(hero.getBoundingClientRect().bottom <= navbarHeight)
+    }
+
+    updateNavbar()
+    window.addEventListener('scroll', updateNavbar, { passive: true })
+    window.addEventListener('resize', updateNavbar)
+    return () => {
+      window.removeEventListener('scroll', updateNavbar)
+      window.removeEventListener('resize', updateNavbar)
+    }
+  }, [])
+
   return (
     <motion.header
-      className="navbar"
+      className={`navbar${isPastHero ? ' navbar--solid' : ''}`}
       initial={reduceMotion ? false : { opacity: 0, y: -24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}

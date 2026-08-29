@@ -9,7 +9,7 @@ import Earth3D from './Earth3D'
 import './Hero.css'
 
 const letters = [1, 2, 3, 4, 5, 6]
-const cloudSrc = '/img/Hero/cloud-transparent-png-0.webp'
+const cloudSrc = '/img/Hero/u%201.webp'
 
 export default function Hero() {
   const reduceMotion = useReducedMotion()
