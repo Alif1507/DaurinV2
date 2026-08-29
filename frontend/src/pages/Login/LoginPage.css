@@ -68,7 +68,7 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .24);
   border-radius: clamp(34px, 3.7vw, 54px);
-  background: linear-gradient(145deg, #0c684f 0%, var(--auth-panel) 52%, var(--auth-panel-deep) 100%);
+  background: #206524;
   box-shadow: 0 30px 70px rgba(4, 71, 48, .2), inset 0 1px 0 rgba(255, 255, 255, .14);
   transform: translateY(-50%);
 }
