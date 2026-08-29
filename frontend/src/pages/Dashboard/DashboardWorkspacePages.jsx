@@ -2,14 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
+  AlertTriangle,
   ArrowUpRight,
   Bot,
   Building2,
+  Camera,
   CheckCircle2,
   ClipboardCheck,
   Image,
   Leaf,
   MapPin,
+  Pencil,
   Play,
   Plus,
   Recycle,
@@ -18,6 +21,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Upload,
   Users,
   X,
 } from 'lucide-react'
@@ -28,6 +32,8 @@ import useAuth from '../../hooks/useAuth'
 import {
   createLocation,
   createWasteRecord,
+  deleteLocation,
+  deleteWasteRecord,
   getCamideRecent,
   getCamideSummary,
   getDashboardSummary,
@@ -38,6 +44,8 @@ import {
   getWasteRecords,
   resolveReport,
   startReport,
+  updateLocation,
+  updateWasteRecord,
 } from '../../services/dashboard.service'
 import {
   categoryLabels,
@@ -119,10 +127,13 @@ export function ReportsDashboardPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [selectedReport, setSelectedReport] = useState(null)
-  const [previewReport, setPreviewReport] = useState(null)
+  const [previewPhoto, setPreviewPhoto] = useState(null)
   const [resolutionNote, setResolutionNote] = useState('')
+  const [resolutionFile, setResolutionFile] = useState(null)
+  const [resolutionFileError, setResolutionFileError] = useState('')
   const [notice, setNotice] = useState('')
   const resolutionInputRef = useRef(null)
+  const resolutionPreviewRef = useRef('')
   const reportsQuery = useQuery({ queryKey: ['reports', 'workspace'], queryFn: () => getReports() })
   const locationsQuery = useQuery({ queryKey: ['locations'], queryFn: getLocations, staleTime: 300000 })
   const summaryQuery = useQuery({ queryKey: ['dashboard', 'summary', 'workspace'], queryFn: () => getDashboardSummary({}) })
@@ -156,14 +167,56 @@ export function ReportsDashboardPage() {
       await refreshReportViews()
       setSelectedReport(null)
       setResolutionNote('')
+      clearResolutionFile()
       setNotice(`${problemLabels[report.problem_type]} ditandai selesai.`)
     },
   })
+
+  function clearResolutionFile() {
+    if (resolutionPreviewRef.current) URL.revokeObjectURL(resolutionPreviewRef.current)
+    resolutionPreviewRef.current = ''
+    setResolutionFile(null)
+    setResolutionFileError('')
+  }
+
+  function selectResolutionFile(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setResolutionFileError('Gunakan foto JPEG, PNG, atau WebP.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setResolutionFileError('Ukuran foto maksimal 5 MB.')
+      return
+    }
+    clearResolutionFile()
+    const previewUrl = URL.createObjectURL(file)
+    resolutionPreviewRef.current = previewUrl
+    setResolutionFile({ file, previewUrl })
+  }
+
+  function openPhotoPreview(report, type) {
+    const isResolution = type === 'resolution'
+    setPreviewPhoto({
+      url: isResolution ? report.resolution_photo_url : report.photo_url,
+      eyebrow: isResolution ? 'BUKTI PENYELESAIAN' : 'FOTO LAPORAN',
+      title: problemLabels[report.problem_type],
+      location: locationNames[report.location_id] || 'Lokasi tidak aktif',
+      date: formatDateTime(isResolution ? report.resolved_at : report.created_at),
+      description: isResolution
+        ? (report.resolution_note || 'Laporan telah diselesaikan oleh petugas sekolah.')
+        : (report.description || 'Tidak ada keterangan tambahan untuk foto ini.'),
+      alt: isResolution ? 'Bukti penyelesaian laporan' : 'Foto laporan',
+    })
+  }
 
   function openResolveDialog(report) {
     setNotice('')
     resolveReportMutation.reset()
     setResolutionNote('')
+    clearResolutionFile()
     setSelectedReport(report)
   }
 
@@ -171,13 +224,14 @@ export function ReportsDashboardPage() {
     if (resolveReportMutation.isPending) return
     setSelectedReport(null)
     resolveReportMutation.reset()
+    clearResolutionFile()
   }
 
   function submitResolution(event) {
     event.preventDefault()
     const note = resolutionNote.trim()
-    if (!selectedReport || note.length < 2) return
-    resolveReportMutation.mutate({ reportId: selectedReport.id, resolutionNote: note })
+    if (!selectedReport || note.length < 2 || !resolutionFile) return
+    resolveReportMutation.mutate({ reportId: selectedReport.id, resolutionNote: note, file: resolutionFile.file })
   }
 
   useEffect(() => {
@@ -191,18 +245,42 @@ export function ReportsDashboardPage() {
   }, [selectedReport, resolveReportMutation.isPending])
 
   useEffect(() => {
-    if (!previewReport) return undefined
+    if (!previewPhoto) return undefined
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const handleEscape = (event) => {
-      if (event.key === 'Escape') setPreviewReport(null)
+      if (event.key === 'Escape') setPreviewPhoto(null)
     }
     window.addEventListener('keydown', handleEscape)
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [previewReport])
+  }, [previewPhoto])
+
+  useEffect(() => () => {
+    if (resolutionPreviewRef.current) URL.revokeObjectURL(resolutionPreviewRef.current)
+  }, [])
+
+  function renderReportPhotos(report, mobile = false) {
+    const photos = [
+      report.photo_url && { type: 'report', url: report.photo_url, label: 'Laporan' },
+      report.resolution_photo_url && { type: 'resolution', url: report.resolution_photo_url, label: 'Bukti selesai' },
+    ].filter(Boolean)
+    if (!photos.length) {
+      return <span className={`report-photo-empty${report.photo_path || report.resolution_photo_path ? ' is-unavailable' : ''}`}>{report.photo_path || report.resolution_photo_path ? 'Foto tidak tersedia' : 'Tidak ada foto'}</span>
+    }
+    return (
+      <div className={mobile ? 'report-photo-stack report-photo-stack--mobile' : 'report-photo-stack'}>
+        {photos.map((photo) => (
+          <button className={mobile ? 'report-photo-mobile' : 'report-photo-trigger'} type="button" key={photo.type} onClick={() => openPhotoPreview(report, photo.type)} aria-label={`Lihat ${photo.label.toLowerCase()} ${problemLabels[report.problem_type]}`}>
+            <img src={photo.url} alt="" />
+            <span><Image /> {photo.label}</span>
+          </button>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <DashboardShell>
@@ -230,19 +308,19 @@ export function ReportsDashboardPage() {
           ) : (
             <div className="responsive-table">
               <table><thead><tr><th>Masalah</th><th>Lampiran</th><th>Lokasi</th><th>Waktu</th><th>Status</th><th>Langkah berikut</th></tr></thead><tbody>
-                {reports.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description || 'Tanpa keterangan tambahan'}</small></td><td>{report.photo_url ? <button className="report-photo-trigger" type="button" onClick={() => setPreviewReport(report)} aria-label={`Lihat foto ${problemLabels[report.problem_type]}`}><img src={report.photo_url} alt="" /><span><Image /> Lihat foto</span></button> : <span className={`report-photo-empty${report.photo_path ? ' is-unavailable' : ''}`}>{report.photo_path ? 'Foto tidak tersedia' : 'Tidak ada foto'}</span>}</td><td>{locationNames[report.location_id] || 'Lokasi tidak aktif'}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td>{report.status === 'reported' ? <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => { setNotice(''); startReportMutation.mutate(report.id) }}>{startReportMutation.isPending && startReportMutation.variables === report.id ? 'Mengambil...' : <><Play /> Mulai tangani</>}</button> : report.status === 'in_progress' ? <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button> : <span className="next-step next-step--done"><CheckCircle2 /> Tuntas</span>}</td></tr>)}
+                {reports.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description || 'Tanpa keterangan tambahan'}</small></td><td>{renderReportPhotos(report)}</td><td>{locationNames[report.location_id] || 'Lokasi tidak aktif'}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td>{report.status === 'reported' ? <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => { setNotice(''); startReportMutation.mutate(report.id) }}>{startReportMutation.isPending && startReportMutation.variables === report.id ? 'Mengambil...' : <><Play /> Mulai tangani</>}</button> : report.status === 'in_progress' ? <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button> : <span className="next-step next-step--done"><CheckCircle2 /> Tuntas</span>}</td></tr>)}
               </tbody></table>
-              <div className="mobile-records">{reports.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description || 'Tanpa keterangan tambahan'}</p><small>{locationNames[report.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(report.created_at)}</small>{report.photo_url && <button className="report-photo-mobile" type="button" onClick={() => setPreviewReport(report)}><img src={report.photo_url} alt="" /><span><Image /> Lihat foto terlampir</span></button>}{report.status === 'reported' && <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => startReportMutation.mutate(report.id)}><Play /> Mulai tangani</button>}{report.status === 'in_progress' && <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button>}</article>)}</div>
+              <div className="mobile-records">{reports.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description || 'Tanpa keterangan tambahan'}</p><small>{locationNames[report.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(report.created_at)}</small>{renderReportPhotos(report, true)}{report.status === 'reported' && <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => startReportMutation.mutate(report.id)}><Play /> Mulai tangani</button>}{report.status === 'in_progress' && <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button>}</article>)}</div>
             </div>
           )}
         </section>
       )}
-      {previewReport && (
-        <div className="report-photo-backdrop" onMouseDown={() => setPreviewReport(null)}>
+      {previewPhoto && (
+        <div className="report-photo-backdrop" onMouseDown={() => setPreviewPhoto(null)}>
           <section className="report-photo-dialog" role="dialog" aria-modal="true" aria-labelledby="report-photo-title" onMouseDown={(event) => event.stopPropagation()}>
-            <header><div><span>FOTO LAMPIRAN</span><h2 id="report-photo-title">{problemLabels[previewReport.problem_type]}</h2><p>{locationNames[previewReport.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(previewReport.created_at)}</p></div><button type="button" onClick={() => setPreviewReport(null)} aria-label="Tutup preview foto" autoFocus><X /></button></header>
-            <div className="report-photo-dialog__image"><img src={previewReport.photo_url} alt={`Foto laporan ${problemLabels[previewReport.problem_type]} di ${locationNames[previewReport.location_id] || 'lokasi sekolah'}`} /></div>
-            <footer><p>{previewReport.description || 'Tidak ada keterangan tambahan untuk foto ini.'}</p><a href={previewReport.photo_url} target="_blank" rel="noreferrer">Buka ukuran asli <ArrowUpRight /></a></footer>
+            <header><div><span>{previewPhoto.eyebrow}</span><h2 id="report-photo-title">{previewPhoto.title}</h2><p>{previewPhoto.location} · {previewPhoto.date}</p></div><button type="button" onClick={() => setPreviewPhoto(null)} aria-label="Tutup preview foto" autoFocus><X /></button></header>
+            <div className="report-photo-dialog__image"><img src={previewPhoto.url} alt={`${previewPhoto.alt} ${previewPhoto.title} di ${previewPhoto.location}`} /></div>
+            <footer><p>{previewPhoto.description}</p><a href={previewPhoto.url} target="_blank" rel="noreferrer">Buka ukuran asli <ArrowUpRight /></a></footer>
           </section>
         </div>
       )}
@@ -253,8 +331,18 @@ export function ReportsDashboardPage() {
             <form onSubmit={submitResolution}>
               <div className="operation-context"><ClipboardCheck /><div><strong>Apa yang sudah dilakukan?</strong><span>Catatan ini dapat dilihat oleh pelapor sebagai hasil penyelesaian.</span></div></div>
               <label><span>Catatan penyelesaian <strong>*</strong></span><textarea ref={resolutionInputRef} value={resolutionNote} onChange={(event) => setResolutionNote(event.target.value)} minLength="2" maxLength="500" rows="5" required placeholder="Contoh: Sampah sudah dikumpulkan dan area telah dibersihkan." /><small>{resolutionNote.length}/500 karakter</small></label>
+              <label className="resolution-proof-field">
+                <span>Foto bukti penyelesaian <strong>*</strong></span>
+                <input className="visually-hidden-file" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectResolutionFile} />
+                {resolutionFile ? (
+                  <span className="resolution-proof-preview"><img src={resolutionFile.previewUrl} alt="Preview bukti penyelesaian" /><span><strong>{resolutionFile.file.name}</strong><small>{(resolutionFile.file.size / 1024 / 1024).toFixed(2)} MB · Klik untuk mengganti</small></span><Camera /></span>
+                ) : (
+                  <span className="resolution-proof-empty"><Upload /><span><strong>Unggah foto kondisi setelah ditangani</strong><small>JPEG, PNG, atau WebP · maksimal 5 MB</small></span></span>
+                )}
+              </label>
+              {resolutionFileError && <p className="location-form-error" role="alert">{resolutionFileError}</p>}
               {resolveReportMutation.isError && <p className="location-form-error" role="alert">{resolveReportMutation.error?.userMessage || 'Laporan tidak dapat diselesaikan.'}</p>}
-              <footer><button type="button" onClick={closeResolveDialog} disabled={resolveReportMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={resolveReportMutation.isPending || resolutionNote.trim().length < 2}>{resolveReportMutation.isPending ? 'Menyimpan...' : <><CheckCircle2 /> Tandai selesai</>}</button></footer>
+              <footer><button type="button" onClick={closeResolveDialog} disabled={resolveReportMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={resolveReportMutation.isPending || resolutionNote.trim().length < 2 || !resolutionFile}>{resolveReportMutation.isPending ? 'Mengunggah bukti...' : <><CheckCircle2 /> Tandai selesai</>}</button></footer>
             </form>
           </section>
         </div>
@@ -264,9 +352,12 @@ export function ReportsDashboardPage() {
 }
 
 export function WasteDashboardPage() {
+  const { profile } = useAuth()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [isWasteFormOpen, setIsWasteFormOpen] = useState(false)
+  const [editingWasteRecord, setEditingWasteRecord] = useState(null)
+  const [deletingWasteRecord, setDeletingWasteRecord] = useState(null)
   const [wasteNotice, setWasteNotice] = useState('')
   const [wasteForm, setWasteForm] = useState({ location_id: '', record_date: todayInputValue(), organic_weight: '', inorganic_weight: '', residual_weight: '', notes: '' })
   const wasteQuery = useQuery({ queryKey: ['waste', 'workspace'], queryFn: () => getWasteRecords() })
@@ -282,31 +373,78 @@ export function WasteDashboardPage() {
   const grandTotal = totals.organic + totals.inorganic + totals.residual
   const formTotal = ['organic_weight', 'inorganic_weight', 'residual_weight'].reduce((sum, field) => sum + (Number(wasteForm[field]) || 0), 0)
 
+  async function refreshWasteViews() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['waste'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+    ])
+  }
+
+  function resetWasteForm() {
+    setWasteForm({ location_id: '', record_date: todayInputValue(), organic_weight: '', inorganic_weight: '', residual_weight: '', notes: '' })
+  }
+
   const createWasteMutation = useMutation({
     mutationFn: createWasteRecord,
     onSuccess: async (record) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['waste'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
-      ])
-      setWasteForm({ location_id: '', record_date: todayInputValue(), organic_weight: '', inorganic_weight: '', residual_weight: '', notes: '' })
+      await refreshWasteViews()
+      resetWasteForm()
       setIsWasteFormOpen(false)
       setWasteNotice(`Penimbangan ${formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)} berhasil dicatat.`)
     },
   })
 
-  function openWasteForm() {
+  const updateWasteMutation = useMutation({
+    mutationFn: updateWasteRecord,
+    onSuccess: async (record) => {
+      await refreshWasteViews()
+      resetWasteForm()
+      setEditingWasteRecord(null)
+      setIsWasteFormOpen(false)
+      setWasteNotice(`Catatan ${formatShortDate(record.record_date)} berhasil diperbarui.`)
+    },
+  })
+
+  const deleteWasteMutation = useMutation({
+    mutationFn: deleteWasteRecord,
+    onSuccess: async () => {
+      const deletedRecord = deletingWasteRecord
+      await refreshWasteViews()
+      setDeletingWasteRecord(null)
+      setWasteNotice(`Catatan ${formatShortDate(deletedRecord.record_date)} di ${locationNames[deletedRecord.location_id] || 'lokasi'} berhasil dihapus.`)
+    },
+  })
+
+  function openWasteForm(record = null) {
     if (!locations.length) return
     setWasteNotice('')
     createWasteMutation.reset()
-    setWasteForm((current) => ({ ...current, location_id: current.location_id || locations[0].id }))
+    updateWasteMutation.reset()
+    setEditingWasteRecord(record)
+    setWasteForm(record ? {
+      location_id: record.location_id,
+      record_date: record.record_date,
+      organic_weight: String(record.organic_weight),
+      inorganic_weight: String(record.inorganic_weight),
+      residual_weight: String(record.residual_weight),
+      notes: record.notes || '',
+    } : {
+      location_id: locations[0].id,
+      record_date: todayInputValue(),
+      organic_weight: '',
+      inorganic_weight: '',
+      residual_weight: '',
+      notes: '',
+    })
     setIsWasteFormOpen(true)
   }
 
   function closeWasteForm() {
-    if (createWasteMutation.isPending) return
+    if (createWasteMutation.isPending || updateWasteMutation.isPending) return
     setIsWasteFormOpen(false)
+    setEditingWasteRecord(null)
     createWasteMutation.reset()
+    updateWasteMutation.reset()
   }
 
   function updateWasteField(field, value) {
@@ -316,24 +454,51 @@ export function WasteDashboardPage() {
   function submitWasteRecord(event) {
     event.preventDefault()
     if (!wasteForm.location_id || formTotal <= 0) return
-    createWasteMutation.mutate({
+    const payload = {
       location_id: wasteForm.location_id,
       record_date: wasteForm.record_date,
       organic_weight: Number(wasteForm.organic_weight) || 0,
       inorganic_weight: Number(wasteForm.inorganic_weight) || 0,
       residual_weight: Number(wasteForm.residual_weight) || 0,
       notes: wasteForm.notes.trim() || null,
-    })
+    }
+    if (editingWasteRecord) {
+      updateWasteMutation.mutate({ recordId: editingWasteRecord.id, payload })
+      return
+    }
+    createWasteMutation.mutate(payload)
+  }
+
+  function canManageWasteRecord(record) {
+    return profile?.role === 'admin' || record.recorded_by === profile?.id
+  }
+
+  function requestDeleteWasteRecord(record) {
+    setWasteNotice('')
+    deleteWasteMutation.reset()
+    setDeletingWasteRecord(record)
   }
 
   useEffect(() => {
     if (!isWasteFormOpen) return undefined
     const handleEscape = (event) => {
-      if (event.key === 'Escape' && !createWasteMutation.isPending) setIsWasteFormOpen(false)
+      if (event.key === 'Escape' && !createWasteMutation.isPending && !updateWasteMutation.isPending) {
+        setIsWasteFormOpen(false)
+        setEditingWasteRecord(null)
+      }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isWasteFormOpen, createWasteMutation.isPending])
+  }, [isWasteFormOpen, createWasteMutation.isPending, updateWasteMutation.isPending])
+
+  useEffect(() => {
+    if (!deletingWasteRecord) return undefined
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !deleteWasteMutation.isPending) setDeletingWasteRecord(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [deletingWasteRecord, deleteWasteMutation.isPending])
 
   return (
     <DashboardShell>
@@ -353,23 +518,45 @@ export function WasteDashboardPage() {
           <span className="diversion-card__icon"><Leaf /></span><span>Potensi dialihkan</span><strong>{formatPercent(grandTotal ? (totals.organic + totals.inorganic) / grandTotal * 100 : 0)}</strong><p>Organik dan anorganik mendominasi aliran. Jaga pemilahan di sumber agar tidak berubah menjadi residu.</p>
         </section>
       </div>
-      <section className="workspace-toolbar"><SearchControl value={search} onChange={setSearch} placeholder="Cari lokasi penimbangan" /><div className="location-toolbar__actions"><span className="workspace-toolbar__note"><Scale /> {records.length} catatan</span><button className="location-add-button" type="button" onClick={openWasteForm} disabled={!locations.length} title={locations.length ? undefined : 'Admin perlu menambahkan lokasi terlebih dahulu'}><Plus /> Catat penimbangan</button></div></section>
+      <section className="workspace-toolbar"><SearchControl value={search} onChange={setSearch} placeholder="Cari lokasi penimbangan" /><div className="location-toolbar__actions"><span className="workspace-toolbar__note"><Scale /> {records.length} catatan</span><button className="location-add-button" type="button" onClick={() => openWasteForm()} disabled={!locations.length} title={locations.length ? undefined : 'Admin perlu menambahkan lokasi terlebih dahulu'}><Plus /> Catat penimbangan</button></div></section>
       {wasteQuery.isLoading && <LoadingPanel />}
       {wasteQuery.isError && <ErrorPanel query={wasteQuery} />}
-      {!wasteQuery.isLoading && !wasteQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Riwayat timbang</span><h2>Catatan sampah</h2></div></header>{records.length === 0 ? <div className="workspace-empty"><span><Scale /></span><div><h3>{(wasteQuery.data || []).length ? 'Lokasi tidak ditemukan' : 'Belum ada hasil penimbangan'}</h3><p>{(wasteQuery.data || []).length ? 'Hapus pencarian untuk melihat semua catatan.' : locations.length ? 'Catat berat sampah organik, anorganik, dan residu setelah pengumpulan.' : 'Admin perlu menambahkan lokasi sebelum staf dapat mencatat penimbangan.'}</p></div>{(wasteQuery.data || []).length ? <button type="button" onClick={() => setSearch('')}>Tampilkan semua</button> : locations.length > 0 && <button type="button" onClick={openWasteForm}>Catat pertama</button>}</div> : <div className="responsive-table"><table><thead><tr><th>Tanggal</th><th>Lokasi</th><th>Organik</th><th>Anorganik</th><th>Residu</th><th>Total</th></tr></thead><tbody>{records.map((record) => { const total = record.organic_weight + record.inorganic_weight + record.residual_weight; return <tr key={record.id}><td>{formatShortDate(record.record_date)}</td><td><strong>{locationNames[record.location_id]}</strong></td><td>{formatKg(record.organic_weight)}</td><td>{formatKg(record.inorganic_weight)}</td><td>{formatKg(record.residual_weight)}</td><td><strong>{formatKg(total)}</strong></td></tr> })}</tbody></table><div className="mobile-records">{records.map((record) => <article key={record.id}><div><strong>{locationNames[record.location_id]}</strong><strong>{formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)}</strong></div><p>Organik {formatKg(record.organic_weight)} · Anorganik {formatKg(record.inorganic_weight)} · Residu {formatKg(record.residual_weight)}</p><small>{formatShortDate(record.record_date)}</small></article>)}</div></div>}</section>}
+      {!wasteQuery.isLoading && !wasteQuery.isError && (
+        <section className="dashboard-panel dashboard-panel--table workspace-table-panel">
+          <header className="dashboard-panel__header"><div><span>Riwayat timbang</span><h2>Catatan sampah</h2></div><small className="workspace-caption">Tambah · periksa · perbarui</small></header>
+          {records.length === 0 ? (
+            <div className="workspace-empty"><span><Scale /></span><div><h3>{(wasteQuery.data || []).length ? 'Lokasi tidak ditemukan' : 'Belum ada hasil penimbangan'}</h3><p>{(wasteQuery.data || []).length ? 'Hapus pencarian untuk melihat semua catatan.' : locations.length ? 'Catat berat sampah organik, anorganik, dan residu setelah pengumpulan.' : 'Admin perlu menambahkan lokasi sebelum staf dapat mencatat penimbangan.'}</p></div>{(wasteQuery.data || []).length ? <button type="button" onClick={() => setSearch('')}>Tampilkan semua</button> : locations.length > 0 && <button type="button" onClick={() => openWasteForm()}>Catat pertama</button>}</div>
+          ) : (
+            <div className="responsive-table">
+              <table><thead><tr><th>Tanggal</th><th>Lokasi</th><th>Organik</th><th>Anorganik</th><th>Residu</th><th>Total</th><th>Aksi</th></tr></thead><tbody>{records.map((record) => { const total = record.organic_weight + record.inorganic_weight + record.residual_weight; const canManage = canManageWasteRecord(record); return <tr key={record.id}><td>{formatShortDate(record.record_date)}</td><td><strong>{locationNames[record.location_id]}</strong><small>{record.notes || 'Tanpa catatan'}</small></td><td>{formatKg(record.organic_weight)}</td><td>{formatKg(record.inorganic_weight)}</td><td>{formatKg(record.residual_weight)}</td><td><strong>{formatKg(total)}</strong></td><td>{canManage ? <div className="record-actions"><button type="button" onClick={() => openWasteForm(record)} aria-label={`Edit catatan ${formatShortDate(record.record_date)}`}><Pencil /> Edit</button><button type="button" className="is-danger" onClick={() => requestDeleteWasteRecord(record)} aria-label={`Hapus catatan ${formatShortDate(record.record_date)}`}><Trash2 /> Hapus</button></div> : <span className="record-readonly"><ShieldCheck /> Milik staf lain</span>}</td></tr> })}</tbody></table>
+              <div className="mobile-records">{records.map((record) => { const canManage = canManageWasteRecord(record); return <article key={record.id}><div><strong>{locationNames[record.location_id]}</strong><strong>{formatKg(record.organic_weight + record.inorganic_weight + record.residual_weight)}</strong></div><p>Organik {formatKg(record.organic_weight)} · Anorganik {formatKg(record.inorganic_weight)} · Residu {formatKg(record.residual_weight)}</p>{record.notes && <p className="mobile-record-note">{record.notes}</p>}<small>{formatShortDate(record.record_date)}</small>{canManage && <div className="record-actions record-actions--mobile"><button type="button" onClick={() => openWasteForm(record)}><Pencil /> Edit</button><button type="button" className="is-danger" onClick={() => requestDeleteWasteRecord(record)}><Trash2 /> Hapus</button></div>}</article> })}</div>
+            </div>
+          )}
+        </section>
+      )}
       {isWasteFormOpen && (
         <div className="location-dialog-backdrop" onMouseDown={closeWasteForm}>
           <section className="location-dialog operations-dialog waste-dialog" role="dialog" aria-modal="true" aria-labelledby="waste-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
-            <header><div><span>LEDGER MATERIAL / BARU</span><h2 id="waste-dialog-title">Catat hasil penimbangan</h2><p>Masukkan berat dalam kilogram sesuai hasil timbang di lokasi.</p></div><button type="button" onClick={closeWasteForm} disabled={createWasteMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
+            <header><div><span>LEDGER MATERIAL / {editingWasteRecord ? 'EDIT' : 'BARU'}</span><h2 id="waste-dialog-title">{editingWasteRecord ? 'Perbarui hasil penimbangan' : 'Catat hasil penimbangan'}</h2><p>{editingWasteRecord ? 'Koreksi lokasi, tanggal, atau berat berdasarkan hasil timbang yang benar.' : 'Masukkan berat dalam kilogram sesuai hasil timbang di lokasi.'}</p></div><button type="button" onClick={closeWasteForm} disabled={createWasteMutation.isPending || updateWasteMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
             <form onSubmit={submitWasteRecord}>
               <div className="waste-form-meta"><label><span>Lokasi <strong>*</strong></span><select value={wasteForm.location_id} onChange={(event) => updateWasteField('location_id', event.target.value)} required>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label><label><span>Tanggal <strong>*</strong></span><input type="date" value={wasteForm.record_date} max={todayInputValue()} onChange={(event) => updateWasteField('record_date', event.target.value)} required /></label></div>
               <fieldset className="waste-weight-grid"><legend>Berat per kategori</legend>{[['organic_weight', 'Organik'], ['inorganic_weight', 'Anorganik'], ['residual_weight', 'Residu']].map(([field, label]) => <label key={field}><span>{label}</span><span className="weight-input"><input type="number" value={wasteForm[field]} onChange={(event) => updateWasteField(field, event.target.value)} min="0" step="0.01" inputMode="decimal" placeholder="0" /><small>kg</small></span></label>)}</fieldset>
               <div className="waste-form-total"><span>Total penimbangan</span><strong>{formatKg(formTotal)}</strong></div>
               <label><span>Catatan <small>Opsional</small></span><textarea value={wasteForm.notes} onChange={(event) => updateWasteField('notes', event.target.value)} maxLength="500" rows="3" placeholder="Contoh: Pengumpulan sore dari tiga kelas." /><small>{wasteForm.notes.length}/500 karakter</small></label>
               {formTotal <= 0 && <p className="waste-form-hint">Isi minimal satu kategori dengan berat lebih dari 0 kg.</p>}
-              {createWasteMutation.isError && <p className="location-form-error" role="alert">{createWasteMutation.error?.userMessage || 'Penimbangan tidak dapat disimpan.'}</p>}
-              <footer><button type="button" onClick={closeWasteForm} disabled={createWasteMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={createWasteMutation.isPending || !wasteForm.location_id || formTotal <= 0}>{createWasteMutation.isPending ? 'Menyimpan...' : <><Plus /> Simpan penimbangan</>}</button></footer>
+              {(createWasteMutation.isError || updateWasteMutation.isError) && <p className="location-form-error" role="alert">{createWasteMutation.error?.userMessage || updateWasteMutation.error?.userMessage || 'Penimbangan tidak dapat disimpan.'}</p>}
+              <footer><button type="button" onClick={closeWasteForm} disabled={createWasteMutation.isPending || updateWasteMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={createWasteMutation.isPending || updateWasteMutation.isPending || !wasteForm.location_id || formTotal <= 0}>{createWasteMutation.isPending || updateWasteMutation.isPending ? 'Menyimpan...' : editingWasteRecord ? <><Pencil /> Simpan perubahan</> : <><Plus /> Simpan penimbangan</>}</button></footer>
             </form>
+          </section>
+        </div>
+      )}
+      {deletingWasteRecord && (
+        <div className="location-dialog-backdrop" onMouseDown={() => !deleteWasteMutation.isPending && setDeletingWasteRecord(null)}>
+          <section className="location-dialog location-delete-dialog waste-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="waste-delete-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>LEDGER MATERIAL / HAPUS</span><h2 id="waste-delete-title">Hapus catatan penimbangan?</h2><p>{locationNames[deletingWasteRecord.location_id] || 'Lokasi'} · {formatShortDate(deletingWasteRecord.record_date)}</p></div><button type="button" onClick={() => setDeletingWasteRecord(null)} disabled={deleteWasteMutation.isPending} aria-label="Tutup konfirmasi"><X /></button></header>
+            <div className="location-delete-dialog__body"><span><AlertTriangle /></span><div><strong>{formatKg(deletingWasteRecord.organic_weight + deletingWasteRecord.inorganic_weight + deletingWasteRecord.residual_weight)} akan dihapus permanen.</strong><p>Ringkasan dashboard dan komposisi sampah akan dihitung ulang setelah catatan dihapus.</p></div></div>
+            {deleteWasteMutation.isError && <p className="location-form-error" role="alert">{deleteWasteMutation.error?.userMessage || 'Catatan penimbangan gagal dihapus.'}</p>}
+            <footer><button type="button" onClick={() => setDeletingWasteRecord(null)} disabled={deleteWasteMutation.isPending}>Batal</button><button className="location-delete-button" type="button" onClick={() => deleteWasteMutation.mutate(deletingWasteRecord.id)} disabled={deleteWasteMutation.isPending}>{deleteWasteMutation.isPending ? 'Menghapus...' : <><Trash2 /> Hapus catatan</>}</button></footer>
           </section>
         </div>
       )}
@@ -409,26 +596,34 @@ export function LocationsDashboardPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingLocation, setEditingLocation] = useState(null)
+  const [deletingLocation, setDeletingLocation] = useState(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [createdNotice, setCreatedNotice] = useState('')
   const nameInputRef = useRef(null)
   const isAdmin = profile?.role === 'admin'
   const locationsQuery = useQuery({ queryKey: ['dashboard', 'locations', 'workspace'], queryFn: () => getLocationPerformance({}) })
+  const registryLocationsQuery = useQuery({ queryKey: ['locations'], queryFn: getLocations, staleTime: 300000 })
   const allLocations = useMemo(() => locationsQuery.data || [], [locationsQuery.data])
+  const locationDetails = useMemo(() => Object.fromEntries((registryLocationsQuery.data || []).map((location) => [location.id, location])), [registryLocationsQuery.data])
   const locations = useMemo(() => allLocations.filter((location) => location.location_name.toLowerCase().includes(search.toLowerCase())), [allLocations, search])
   const totalReports = allLocations.reduce((sum, location) => sum + location.reports, 0)
   const totalWaste = allLocations.reduce((sum, location) => sum + location.total_waste, 0)
   const averageResolution = allLocations.length ? allLocations.reduce((sum, location) => sum + location.resolution_rate, 0) / allLocations.length : 0
 
+  async function refreshLocations() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      queryClient.invalidateQueries({ queryKey: ['locations'] }),
+      queryClient.invalidateQueries({ queryKey: ['reporting', 'locations'] }),
+    ])
+  }
+
   const createLocationMutation = useMutation({
     mutationFn: createLocation,
     onSuccess: async (location) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['dashboard', 'locations', 'workspace'] }),
-        queryClient.invalidateQueries({ queryKey: ['locations'] }),
-        queryClient.invalidateQueries({ queryKey: ['reporting', 'locations'] }),
-      ])
+      await refreshLocations()
       setName('')
       setDescription('')
       setIsFormOpen(false)
@@ -436,37 +631,87 @@ export function LocationsDashboardPage() {
     },
   })
 
-  function openLocationForm() {
+  const updateLocationMutation = useMutation({
+    mutationFn: updateLocation,
+    onSuccess: async (location) => {
+      await refreshLocations()
+      setIsFormOpen(false)
+      setEditingLocation(null)
+      setCreatedNotice(`Perubahan ${location.name} berhasil disimpan.`)
+    },
+  })
+
+  const deleteLocationMutation = useMutation({
+    mutationFn: deleteLocation,
+    onSuccess: async () => {
+      const deletedName = deletingLocation?.location_name
+      await refreshLocations()
+      setDeletingLocation(null)
+      setCreatedNotice(`${deletedName || 'Lokasi'} dihapus dari pilihan laporan baru.`)
+    },
+  })
+
+  function openLocationForm(location = null) {
     setCreatedNotice('')
     createLocationMutation.reset()
+    updateLocationMutation.reset()
+    const detail = location ? locationDetails[location.location_id] : null
+    setEditingLocation(location)
+    setName(detail?.name || location?.location_name || '')
+    setDescription(detail?.description || '')
     setIsFormOpen(true)
   }
 
   function closeLocationForm() {
-    if (createLocationMutation.isPending) return
+    if (createLocationMutation.isPending || updateLocationMutation.isPending) return
     setIsFormOpen(false)
+    setEditingLocation(null)
     createLocationMutation.reset()
+    updateLocationMutation.reset()
   }
 
-  function handleCreateLocation(event) {
+  function handleSaveLocation(event) {
     event.preventDefault()
     const trimmedName = name.trim()
     if (trimmedName.length < 2) return
-    createLocationMutation.mutate({
+    const payload = {
       name: trimmedName,
       description: description.trim() || null,
-    })
+    }
+    if (editingLocation) {
+      updateLocationMutation.mutate({ locationId: editingLocation.location_id, payload })
+      return
+    }
+    createLocationMutation.mutate(payload)
+  }
+
+  function requestDeleteLocation(location) {
+    setCreatedNotice('')
+    deleteLocationMutation.reset()
+    setDeletingLocation(location)
   }
 
   useEffect(() => {
     if (!isFormOpen) return undefined
     nameInputRef.current?.focus()
     const handleEscape = (event) => {
-      if (event.key === 'Escape' && !createLocationMutation.isPending) setIsFormOpen(false)
+      if (event.key === 'Escape' && !createLocationMutation.isPending && !updateLocationMutation.isPending) {
+        setIsFormOpen(false)
+        setEditingLocation(null)
+      }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isFormOpen, createLocationMutation.isPending])
+  }, [isFormOpen, createLocationMutation.isPending, updateLocationMutation.isPending])
+
+  useEffect(() => {
+    if (!deletingLocation) return undefined
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !deleteLocationMutation.isPending) setDeletingLocation(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [deletingLocation, deleteLocationMutation.isPending])
 
   return (
     <DashboardShell>
@@ -481,7 +726,7 @@ export function LocationsDashboardPage() {
         <SearchControl value={search} onChange={setSearch} placeholder="Cari ruang atau area" />
         <div className="location-toolbar__actions">
           <span className="workspace-toolbar__note"><Activity /> Diurutkan menurut perhatian</span>
-          {isAdmin && <button className="location-add-button" type="button" onClick={openLocationForm}><Plus /> Tambah lokasi</button>}
+          {isAdmin && <button className="location-add-button" type="button" onClick={() => openLocationForm()}><Plus /> Tambah lokasi</button>}
         </div>
       </section>
       {locationsQuery.isLoading && <LoadingPanel />}
@@ -490,7 +735,7 @@ export function LocationsDashboardPage() {
         <section className="location-empty">
           <span className="location-empty__marker"><Building2 /><i><MapPin /></i></span>
           <div><span>REGISTRI LOKASI</span><h2>Belum ada lokasi sekolah</h2><p>{isAdmin ? 'Daftarkan ruang kelas, kantin, taman, atau area lain agar pengguna dapat memilih lokasi saat membuat laporan.' : 'Lokasi hanya dapat ditambahkan oleh admin. Hubungi admin sekolah agar lokasi tersedia untuk laporan.'}</p></div>
-          {isAdmin && <button className="location-add-button" type="button" onClick={openLocationForm}><Plus /> Tambah lokasi pertama</button>}
+          {isAdmin && <button className="location-add-button" type="button" onClick={() => openLocationForm()}><Plus /> Tambah lokasi pertama</button>}
         </section>
       )}
       {!locationsQuery.isLoading && !locationsQuery.isError && allLocations.length > 0 && locations.length === 0 && (
@@ -510,6 +755,7 @@ export function LocationsDashboardPage() {
                 <h2>{location.location_name}</h2>
                 <div className="location-card__score"><strong>{formatPercent(location.resolution_rate)}</strong><span>laporan selesai</span></div>
                 <div className="location-card__facts"><span><Trash2 /> <strong>{location.reports}</strong><small>laporan</small></span><span><Scale /> <strong>{formatKg(location.total_waste)}</strong><small>sampah</small></span></div>
+                {isAdmin && <div className="location-card__actions"><button type="button" disabled={!locationDetails[location.location_id]} onClick={() => openLocationForm(location)}><Pencil /> Edit</button><button type="button" className="is-danger" onClick={() => requestDeleteLocation(location)}><Trash2 /> Hapus</button></div>}
                 <span className="location-card__progress"><i style={{ width: `${location.resolution_rate}%` }} /></span>
               </article>
             )
@@ -519,13 +765,23 @@ export function LocationsDashboardPage() {
       {isFormOpen && (
         <div className="location-dialog-backdrop" onMouseDown={closeLocationForm}>
           <section className="location-dialog" role="dialog" aria-modal="true" aria-labelledby="location-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
-            <header><div><span>REGISTRI LOKASI / BARU</span><h2 id="location-dialog-title">Daftarkan ruang baru</h2><p>Lokasi ini langsung tersedia sebagai pilihan pada formulir laporan.</p></div><button type="button" onClick={closeLocationForm} disabled={createLocationMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
-            <form onSubmit={handleCreateLocation}>
+            <header><div><span>REGISTRI LOKASI / {editingLocation ? 'EDIT' : 'BARU'}</span><h2 id="location-dialog-title">{editingLocation ? 'Edit detail lokasi' : 'Daftarkan ruang baru'}</h2><p>{editingLocation ? 'Perubahan nama langsung diterapkan pada pilihan lokasi laporan.' : 'Lokasi ini langsung tersedia sebagai pilihan pada formulir laporan.'}</p></div><button type="button" onClick={closeLocationForm} disabled={createLocationMutation.isPending || updateLocationMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
+            <form onSubmit={handleSaveLocation}>
               <label><span>Nama lokasi <strong>*</strong></span><input ref={nameInputRef} value={name} onChange={(event) => setName(event.target.value)} minLength="2" maxLength="150" required placeholder="Contoh: Kantin Utama" /></label>
               <label><span>Deskripsi <small>Opsional</small></span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength="1000" rows="4" placeholder="Contoh: Gedung B, lantai dasar" /><small>{description.length}/1000 karakter</small></label>
-              {createLocationMutation.isError && <p className="location-form-error" role="alert">{createLocationMutation.error?.userMessage || 'Lokasi gagal ditambahkan. Silakan coba lagi.'}</p>}
-              <footer><button type="button" onClick={closeLocationForm} disabled={createLocationMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={createLocationMutation.isPending || name.trim().length < 2}>{createLocationMutation.isPending ? 'Menyimpan...' : <><Plus /> Simpan lokasi</>}</button></footer>
+              {(createLocationMutation.isError || updateLocationMutation.isError) && <p className="location-form-error" role="alert">{createLocationMutation.error?.userMessage || updateLocationMutation.error?.userMessage || 'Perubahan lokasi gagal disimpan. Silakan coba lagi.'}</p>}
+              <footer><button type="button" onClick={closeLocationForm} disabled={createLocationMutation.isPending || updateLocationMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={createLocationMutation.isPending || updateLocationMutation.isPending || name.trim().length < 2}>{createLocationMutation.isPending || updateLocationMutation.isPending ? 'Menyimpan...' : editingLocation ? <><Pencil /> Simpan perubahan</> : <><Plus /> Simpan lokasi</>}</button></footer>
             </form>
+          </section>
+        </div>
+      )}
+      {deletingLocation && (
+        <div className="location-dialog-backdrop" onMouseDown={() => !deleteLocationMutation.isPending && setDeletingLocation(null)}>
+          <section className="location-dialog location-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="location-delete-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>REGISTRI LOKASI / HAPUS</span><h2 id="location-delete-title">Hapus {deletingLocation.location_name}?</h2><p>Laporan lama tetap tersimpan, tetapi lokasi ini tidak lagi muncul saat pengguna membuat laporan baru.</p></div><button type="button" onClick={() => setDeletingLocation(null)} disabled={deleteLocationMutation.isPending} aria-label="Tutup konfirmasi"><X /></button></header>
+            <div className="location-delete-dialog__body"><span><AlertTriangle /></span><div><strong>Tindakan ini menyembunyikan lokasi.</strong><p>Data laporan dan catatan sampah yang sudah ada tidak akan ikut terhapus.</p></div></div>
+            {deleteLocationMutation.isError && <p className="location-form-error" role="alert">{deleteLocationMutation.error?.userMessage || 'Lokasi gagal dihapus. Silakan coba lagi.'}</p>}
+            <footer><button type="button" onClick={() => setDeletingLocation(null)} disabled={deleteLocationMutation.isPending}>Batal</button><button className="location-delete-button" type="button" onClick={() => deleteLocationMutation.mutate(deletingLocation.location_id)} disabled={deleteLocationMutation.isPending}>{deleteLocationMutation.isPending ? 'Menghapus...' : <><Trash2 /> Hapus lokasi</>}</button></footer>
           </section>
         </div>
       )}

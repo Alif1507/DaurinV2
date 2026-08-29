@@ -173,6 +173,11 @@
 .resolution-note div { display: grid; gap: 3px; }
 .resolution-note strong { color: #245a37; font-size: 10px; }
 .resolution-note p { margin: 0; color: #577061; font-size: 9px; line-height: 1.45; }
+.resolution-proof-link { width: min(300px, 100%); min-height: 64px; display: grid; grid-template-columns: 72px 1fr; align-items: center; gap: 10px; margin-top: 9px; overflow: hidden; border: 1px solid #bad4be; border-radius: 6px; color: #215d39; background: #fff; font-size: 9px; font-weight: 800; text-decoration: none; }
+.resolution-proof-link img { width: 72px; height: 64px; display: block; object-fit: cover; }
+.resolution-proof-link span { display: flex; align-items: center; gap: 6px; padding-right: 10px; }
+.resolution-proof-link svg { width: 14px; }
+.resolution-proof-link:hover { border-color: #5e9b6b; background: #f7fbf7; }
 .student-report-empty { min-height: 330px; display: grid; place-items: center; align-content: center; padding: 30px; border: 1px dashed #c9d9cb; border-radius: 18px; background: #fbfdfb; text-align: center; }
 .student-report-empty > svg { width: 35px; color: #72a27d; }
 .student-report-empty h2 { margin: 12px 0 5px; font: 740 23px Georgia, serif; }
@@ -299,6 +304,7 @@
 .student-report-progress { border: 1px solid #e0e6df; background: #f7f9f6; }
 .student-report-progress > div > span { border-radius: 2px; }
 .student-report-photo { border-radius: 2px; }
+.resolution-proof-link { border-radius: 2px; }
 .student-report-empty a,
 .student-report-state .dashboard-state button { border-radius: 2px; }
 .reporting-footer { border-top-color: #d1d9cf; background: #f1f4ef; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing: .04em; }

@@ -17,7 +17,6 @@ from app.utils.pagination import pagination_meta
 router = APIRouter(prefix="/waste-records", tags=["Waste Records"])
 Services = Annotated[ServiceContainer, Depends(get_services)]
 StaffUser = Annotated[Profile, Depends(require_roles(Role.STAFF, Role.ADMIN))]
-AdminUser = Annotated[Profile, Depends(require_roles(Role.ADMIN))]
 
 
 @router.post("", response_model=SingleResponse[WasteRecordOut], status_code=status.HTTP_201_CREATED)
@@ -63,13 +62,13 @@ def get_waste_record(
 def update_waste_record(
     record_id: UUID,
     payload: WasteRecordUpdate,
-    _: AdminUser,
+    current_user: StaffUser,
     services: Services,
 ) -> SingleResponse[WasteRecordOut]:
-    return SingleResponse(data=services.waste.update(record_id, payload), message="Waste record updated")
+    return SingleResponse(data=services.waste.update(record_id, payload, current_user), message="Waste record updated")
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_waste_record(record_id: UUID, _: AdminUser, services: Services) -> Response:
-    services.waste.delete(record_id)
+def delete_waste_record(record_id: UUID, current_user: StaffUser, services: Services) -> Response:
+    services.waste.delete(record_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

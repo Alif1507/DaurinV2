@@ -15,6 +15,14 @@ export async function createLocation(payload) {
   const response = await api.post('/locations', payload)
   return response.data.data
 }
+export async function updateLocation({ locationId, payload }) {
+  const response = await api.patch(`/locations/${locationId}`, payload)
+  return response.data.data
+}
+export async function deleteLocation(locationId) {
+  await api.delete(`/locations/${locationId}`)
+  return locationId
+}
 export const getDashboardSummary = (params) => getData('/dashboard/summary', params)
 export const getWasteTrend = (params) => getData('/dashboard/waste-trend', params)
 export const getCamideSummary = (params) => getData('/dashboard/camide-summary', params)
@@ -29,8 +37,11 @@ export async function startReport(reportId) {
   return response.data.data
 }
 
-export async function resolveReport({ reportId, resolutionNote }) {
-  const response = await api.patch(`/reports/${reportId}/resolve`, { resolution_note: resolutionNote })
+export async function resolveReport({ reportId, resolutionNote, file }) {
+  const body = new FormData()
+  body.append('resolution_note', resolutionNote)
+  body.append('file', file)
+  const response = await api.patch(`/reports/${reportId}/resolve`, body)
   return response.data.data
 }
 
@@ -39,6 +50,16 @@ export const getWasteRecords = (params = {}) => getData('/waste-records', { page
 export async function createWasteRecord(payload) {
   const response = await api.post('/waste-records', payload)
   return response.data.data
+}
+
+export async function updateWasteRecord({ recordId, payload }) {
+  const response = await api.patch(`/waste-records/${recordId}`, payload)
+  return response.data.data
+}
+
+export async function deleteWasteRecord(recordId) {
+  await api.delete(`/waste-records/${recordId}`)
+  return recordId
 }
 
 export const getUsers = (params = {}) => getData('/users', { page: 1, limit: 100, ...params })

@@ -54,6 +54,11 @@ class ReportService:
     def with_signed_url(self, report: dict) -> dict:
         result = dict(report)
         result["photo_url"] = self.storage.signed_url(report["photo_path"]) if report.get("photo_path") else None
+        result["resolution_photo_url"] = (
+            self.storage.signed_url(report["resolution_photo_path"])
+            if report.get("resolution_photo_path")
+            else None
+        )
         return result
 
     def with_signed_urls(self, reports: list[dict]) -> list[dict]:
@@ -79,24 +84,42 @@ class ReportService:
             raise ConflictError("REPORT_ALREADY_CHANGED", "Report status changed concurrently")
         return self.with_signed_url(updated)
 
-    def resolve(self, report_id: UUID, resolution_note: str) -> dict:
+    def resolve_with_proof(
+        self,
+        report_id: UUID,
+        resolution_note: str,
+        current_user: Profile,
+        content: bytes,
+        content_type: str | None,
+    ) -> dict:
         current = self.repository.get(report_id)
         if current is None:
             raise NotFoundError("REPORT_NOT_FOUND", "Report not found")
         validate_report_transition(ReportStatus(current["status"]), ReportStatus.RESOLVED)
+        if current_user.role == Role.STAFF and current.get("handled_by") != str(current_user.id):
+            raise AuthorizationError("Only the staff member handling this report can complete it")
+
+        image = validate_image(content, content_type, self.settings.max_upload_bytes)
+        path = f"reports/{report_id}/resolution/{uuid4()}.{image.extension}"
+        self.storage.upload(path, image.content, image.content_type)
         now = datetime.now(timezone.utc).isoformat()
-        updated = self.repository.transition(
-            report_id,
-            ReportStatus.IN_PROGRESS,
-            {
-                "status": ReportStatus.RESOLVED.value,
-                "resolution_note": resolution_note,
-                "resolved_at": now,
-                "updated_at": now,
-            },
-        )
-        if updated is None:
-            raise ConflictError("REPORT_ALREADY_CHANGED", "Report status changed concurrently")
+        try:
+            updated = self.repository.transition(
+                report_id,
+                ReportStatus.IN_PROGRESS,
+                {
+                    "status": ReportStatus.RESOLVED.value,
+                    "resolution_note": resolution_note,
+                    "resolution_photo_path": path,
+                    "resolved_at": now,
+                    "updated_at": now,
+                },
+            )
+            if updated is None:
+                raise ConflictError("REPORT_ALREADY_CHANGED", "Report status changed concurrently")
+        except Exception:
+            self.storage.remove(path)
+            raise
         return self.with_signed_url(updated)
 
     def upload_image(

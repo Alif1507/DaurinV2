@@ -12,10 +12,6 @@ class ReportCreate(BaseModel):
     description: str | None = Field(default=None, max_length=500)
 
 
-class ReportResolve(BaseModel):
-    resolution_note: str = Field(min_length=2, max_length=500)
-
-
 class ReportOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -29,6 +25,8 @@ class ReportOut(BaseModel):
     status: ReportStatus
     handled_by: UUID | None = None
     resolution_note: str | None = None
+    resolution_photo_path: str | None = None
+    resolution_photo_url: str | None = None
     started_at: datetime | None = None
     resolved_at: datetime | None = None
     created_at: datetime

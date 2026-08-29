@@ -178,6 +178,7 @@ Run these files in numeric order using the Supabase SQL Editor or CLI:
 1. `backend/supabase/migrations/001_daurin_mvp.sql`
 2. `backend/supabase/migrations/002_camide.sql`
 3. `backend/supabase/migrations/003_dashboard_indexes.sql`
+4. `backend/supabase/migrations/004_report_resolution_proof.sql`
 
 The migrations create the application tables, indexes, private storage buckets,
 and access restrictions required by the backend.

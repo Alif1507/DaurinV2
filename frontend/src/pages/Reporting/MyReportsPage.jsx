@@ -36,7 +36,20 @@ export default function MyReportsPage() {
       {reportsQuery.isLoading && <section className="student-report-state"><PanelLoading /></section>}
       {reportsQuery.isError && <section className="student-report-state"><PanelError message={reportsQuery.error?.userMessage} onRetry={reportsQuery.refetch} /></section>}
       {!reportsQuery.isLoading && !reportsQuery.isError && reports.length === 0 && <section className="student-report-empty"><Trash2 /><h2>Belum ada laporan di status ini.</h2><p>Pilih status lain atau buat laporan baru saat menemukan kondisi yang perlu ditangani.</p><Link to="/report"><Plus /> Buat laporan</Link></section>}
-      <section className="student-report-list">{reports.map((report) => <article className="student-report-card" key={report.id}><header><div><span className="report-id">#{report.id.slice(-7).toUpperCase()}</span><h2>{problemLabels[report.problem_type]}</h2><p><MapPin /> {locationNames[report.location_id] || 'Lokasi sekolah'}<span />{formatReportDate(report.created_at)}</p></div><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></header><p className="student-report-description">{report.description || 'Tidak ada deskripsi tambahan.'}</p>{(report.photo_name || report.photo_url || report.photo_path) && <span className="student-report-photo"><Image /> {report.photo_name || 'Foto terlampir'}</span>}<ReportProgress status={report.status} />{report.status === 'resolved' && <div className="resolution-note"><CheckCircle2 /><div><strong>Catatan penyelesaian</strong><p>{report.resolution_note || 'Laporan telah diselesaikan oleh petugas sekolah.'}</p></div></div>}</article>)}</section>
+      <section className="student-report-list">{reports.map((report) => (
+        <article className="student-report-card" key={report.id}>
+          <header><div><span className="report-id">#{report.id.slice(-7).toUpperCase()}</span><h2>{problemLabels[report.problem_type]}</h2><p><MapPin /> {locationNames[report.location_id] || 'Lokasi sekolah'}<span />{formatReportDate(report.created_at)}</p></div><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></header>
+          <p className="student-report-description">{report.description || 'Tidak ada deskripsi tambahan.'}</p>
+          {(report.photo_name || report.photo_url || report.photo_path) && <span className="student-report-photo"><Image /> {report.photo_name || 'Foto terlampir'}</span>}
+          <ReportProgress status={report.status} />
+          {report.status === 'resolved' && (
+            <div className="resolution-note">
+              <CheckCircle2 />
+              <div><strong>Catatan penyelesaian</strong><p>{report.resolution_note || 'Laporan telah diselesaikan oleh petugas sekolah.'}</p>{report.resolution_photo_url && <a className="resolution-proof-link" href={report.resolution_photo_url} target="_blank" rel="noreferrer"><img src={report.resolution_photo_url} alt="Bukti laporan telah ditangani" /><span><Image /> Lihat bukti dari staf</span></a>}</div>
+            </div>
+          )}
+        </article>
+      ))}</section>
     </ReportingShell>
   )
 }

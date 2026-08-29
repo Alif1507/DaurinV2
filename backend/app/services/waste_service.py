@@ -2,8 +2,9 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
-from app.core.exceptions import AppError, NotFoundError
+from app.core.exceptions import AppError, AuthorizationError, NotFoundError
 from app.repositories.waste_repository import WasteRepository
+from app.schemas.enums import Role
 from app.schemas.user import Profile
 from app.schemas.waste import WasteRecordCreate, WasteRecordUpdate
 from app.services.location_service import LocationService
@@ -26,8 +27,14 @@ class WasteService:
             raise NotFoundError("WASTE_RECORD_NOT_FOUND", "Waste record not found")
         return record
 
-    def update(self, record_id: UUID, model: WasteRecordUpdate) -> dict:
+    @staticmethod
+    def require_manager(record: dict, current_user: Profile) -> None:
+        if current_user.role != Role.ADMIN and record["recorded_by"] != str(current_user.id):
+            raise AuthorizationError("You can only change waste records that you created")
+
+    def update(self, record_id: UUID, model: WasteRecordUpdate, current_user: Profile) -> dict:
         current = self.get(record_id)
+        self.require_manager(current, current_user)
         payload = model.model_dump(mode="json", exclude_unset=True)
         if model.location_id is not None:
             self.locations.require_active(model.location_id)
@@ -44,7 +51,8 @@ class WasteService:
         payload["updated_at"] = datetime.now(timezone.utc).isoformat()
         return self.repository.update(record_id, payload) or {}
 
-    def delete(self, record_id: UUID) -> None:
-        self.get(record_id)
+    def delete(self, record_id: UUID, current_user: Profile) -> None:
+        current = self.get(record_id)
+        self.require_manager(current, current_user)
         if not self.repository.delete(record_id):
             raise NotFoundError("WASTE_RECORD_NOT_FOUND", "Waste record not found")

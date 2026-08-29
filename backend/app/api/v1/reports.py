@@ -2,13 +2,13 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 
 from app.core.dependencies import CurrentUser, require_roles
 from app.schemas.common import CollectionResponse, SingleResponse
 from app.schemas.enums import ProblemType, ReportStatus, Role
-from app.schemas.report import ReportCreate, ReportOut, ReportResolve
+from app.schemas.report import ReportCreate, ReportOut
 from app.schemas.user import Profile
 from app.services.container import ServiceContainer, get_services
 from app.utils.dates import validate_date_range
@@ -114,13 +114,23 @@ def start_report(
 
 
 @router.patch("/{report_id}/resolve", response_model=SingleResponse[ReportOut])
-def resolve_report(
+async def resolve_report(
     report_id: UUID,
-    payload: ReportResolve,
-    _: StaffUser,
+    current_user: StaffUser,
     services: Services,
+    resolution_note: Annotated[str, Form(min_length=2, max_length=500)],
+    file: Annotated[UploadFile, File(description="Completion proof; JPEG, PNG, or WebP; maximum 5 MB")],
 ) -> SingleResponse[ReportOut]:
+    content = await file.read(services.settings.max_upload_bytes + 1)
+    result = await run_in_threadpool(
+        services.reports.resolve_with_proof,
+        report_id,
+        resolution_note,
+        current_user,
+        content,
+        file.content_type,
+    )
     return SingleResponse(
-        data=services.reports.resolve(report_id, payload.resolution_note),
+        data=result,
         message="Report resolved",
     )
