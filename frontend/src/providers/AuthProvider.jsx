@@ -119,20 +119,6 @@ export default function AuthProvider({ children }) {
     return nextProfile
   }, [])
 
-  const sendPasswordReset = useCallback(async (email) => {
-    const supabase = await getSupabase()
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    if (resetError) throw new Error(resetError.message || 'Tautan pemulihan belum dapat dikirim.')
-  }, [])
-
-  const updatePassword = useCallback(async (password) => {
-    const supabase = await getSupabase()
-    const { error: updateError } = await supabase.auth.updateUser({ password })
-    if (updateError) throw new Error(updateError.message || 'Kata sandi belum dapat diperbarui.')
-  }, [])
-
   const signOut = useCallback(async () => {
     const supabase = await getSupabase()
     await supabase.auth.signOut()
@@ -148,11 +134,9 @@ export default function AuthProvider({ children }) {
     error,
     signIn,
     signUp,
-    sendPasswordReset,
-    updatePassword,
     signOut,
     refreshProfile,
-  }), [session, profile, isLoading, error, signIn, signUp, sendPasswordReset, updatePassword, signOut, refreshProfile])
+  }), [session, profile, isLoading, error, signIn, signUp, signOut, refreshProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

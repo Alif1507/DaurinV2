@@ -56,6 +56,9 @@ class ReportService:
         result["photo_url"] = self.storage.signed_url(report["photo_path"]) if report.get("photo_path") else None
         return result
 
+    def with_signed_urls(self, reports: list[dict]) -> list[dict]:
+        return [self.with_signed_url(report) for report in reports]
+
     def start(self, report_id: UUID, current_user: Profile) -> dict:
         current = self.repository.get(report_id)
         if current is None:

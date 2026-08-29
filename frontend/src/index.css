@@ -34,6 +34,10 @@ body {
   overflow-x: clip;
 }
 
+main > section[id] {
+  scroll-margin-top: calc(104px + env(safe-area-inset-top, 0px));
+}
+
 button,
 a {
   font: inherit;
@@ -79,4 +83,10 @@ a {
   }
 
   .route-state__loader { animation: none; }
+}
+
+@media (max-width: 900px) {
+  main > section[id] {
+    scroll-margin-top: calc(88px + env(safe-area-inset-top, 0px));
+  }
 }

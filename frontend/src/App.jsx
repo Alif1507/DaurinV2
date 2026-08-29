@@ -5,6 +5,7 @@ import ProtectedRoute from './components/Auth/ProtectedRoute'
 import Camide from './components/Camide/Camide'
 import EducationAccordion from './components/EducationAccordion/EducationAccordion'
 import Flow from './components/Flow/Flow'
+import Footer from './components/Footer/Footer'
 import Hero from './components/Hero/Hero'
 import Navbar from './components/Navbar/Navbar'
 
@@ -19,7 +20,6 @@ const NewReportPage = lazy(() => import('./pages/Reporting/NewReportPage'))
 const MyReportsPage = lazy(() => import('./pages/Reporting/MyReportsPage'))
 const LoginPage = lazy(() => import('./pages/Login/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/Register/RegisterPage'))
-const ResetPasswordPage = lazy(() => import('./pages/ResetPassword/ResetPasswordPage'))
 
 function RouteLoader() {
   return <div className="route-state"><span className="route-state__loader" />Memuat halaman...</div>
@@ -47,7 +47,7 @@ function LandingPage() {
     }
   }, [])
 
-  return <main><Navbar /><Hero /><About /><Flow /><EducationAccordion /><Camide /></main>
+  return <main><Navbar /><Hero /><About /><Flow /><EducationAccordion /><Camide /><Footer /></main>
 }
 
 function DashboardAccess({ children, allowedRoles = ['staff', 'admin'] }) {
@@ -65,7 +65,6 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/report" element={<ReportingAccess><NewReportPage /></ReportingAccess>} />
         <Route path="/my-reports" element={<ReportingAccess><MyReportsPage /></ReportingAccess>} />
         <Route path="/dashboard" element={<DashboardAccess><DashboardPage /></DashboardAccess>} />

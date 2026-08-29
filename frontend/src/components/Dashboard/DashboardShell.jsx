@@ -43,7 +43,7 @@ export default function DashboardShell({ children }) {
           <Link className="dashboard-brand" to="/"><DaurinMark /><strong>Daurin</strong></Link>
           <button type="button" onClick={() => setMenuOpen(false)} aria-label="Tutup navigasi"><X /></button>
         </div>
-        <div className="dashboard-school"><School /><div><span>RE-SCHOOL</span><strong>Operations suite</strong></div></div>
+        <div className="dashboard-school"><School /><div><span>DAURIN</span><strong>Operations suite</strong></div></div>
         <span className="dashboard-nav__label">Ruang kerja</span>
         <nav className="dashboard-nav" aria-label="Navigasi dashboard">
           {navigation.filter((item) => !item.adminOnly || profile?.role === 'admin').map((item) => {

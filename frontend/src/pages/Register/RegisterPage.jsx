@@ -44,7 +44,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout mode="register" title="Welcome" subtitle="Buat akun dan langsung mulai menjaga sekolah bersama.">
+    <AuthLayout mode="register" title="Buat akun Daurin." subtitle="Mulai melapor, memilah, dan menjaga sekolah bersama.">
       <form className="auth-form auth-form--register" onSubmit={handleSubmit}>
         <label><span>Nama lengkap</span><input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" placeholder="Nama Lengkap" required minLength={2} maxLength={150} /></label>
         <label><span>Email</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="Email" required /></label>
@@ -52,8 +52,8 @@ export default function RegisterPage() {
         <label><span>Konfirmasi password</span><input type={showPassword ? 'text' : 'password'} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" placeholder="Konfirmasi Password" required minLength={8} /></label>
 
         {error && <p className="auth-message auth-message--error" role="alert">{error}</p>}
-        <div className="auth-switch"><span>Already have an account?</span><Link to="/login">Log In</Link></div>
-        <button className="auth-submit" type="submit" disabled={isSubmitting}><strong>{isSubmitting ? 'Creating...' : 'Sign Up'}</strong><span><ArrowUpRight /></span></button>
+        <div className="auth-switch"><span>Sudah punya akun?</span><Link to="/login">Masuk</Link></div>
+        <button className="auth-submit" type="submit" disabled={isSubmitting}><strong>{isSubmitting ? 'Membuat akun...' : 'Daftar'}</strong><span><ArrowUpRight /></span></button>
       </form>
     </AuthLayout>
   )

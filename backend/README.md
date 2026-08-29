@@ -1,4 +1,4 @@
-# RE-SCHOOL Backend
+# Daurin Backend
 
 FastAPI backend for cleanliness reporting and school waste management. Supabase provides Auth, PostgreSQL, and private object storage.
 

@@ -2,6 +2,8 @@ import { ArrowLeft, CircleUserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export default function AuthLayout({ mode, title, subtitle, children }) {
+  const usesLoginArtwork = mode === 'login'
+
   return (
     <main className={`auth-scene auth-scene--${mode}`}>
       <Link to="/" className="auth-home" aria-label="Kembali ke situs Daurin">
@@ -9,14 +11,13 @@ export default function AuthLayout({ mode, title, subtitle, children }) {
       </Link>
 
       <div className="auth-art" aria-hidden="true">
-        <span className="auth-art__blob auth-art__blob--one" />
-        <span className="auth-art__blob auth-art__blob--two" />
-        <img className="auth-art__logo" src="/logo.png" alt="" />
+        <img className="auth-art__ribbon" src={`/img/auth/${usesLoginArtwork ? 'ribbon-login-v2' : 'ribbon-register-v2'}.png`} alt="" />
+        <div className="auth-art__identity">
+          <img src="/logo.png" alt="" />
+        </div>
       </div>
 
       <section className="auth-card" aria-labelledby={`${mode}-title`}>
-        <div className="auth-card__notch auth-card__notch--top" />
-        <div className="auth-card__notch auth-card__notch--bottom" />
         <span className="auth-card__avatar" aria-hidden="true"><CircleUserRound /></span>
         <div className="auth-card__content">
           <header>

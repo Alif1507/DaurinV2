@@ -1,3 +1,4 @@
+-- Daurin initial schema
 begin;
 
 create extension if not exists pgcrypto;

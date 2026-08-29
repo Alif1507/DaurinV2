@@ -11,21 +11,6 @@ const links = [
   { label: 'Laporan Saya', href: '/my-reports' },
 ]
 
-function DaurinLogo() {
-  return (
-    <svg viewBox="0 0 164 54" role="img" aria-label="Daurin">
-      <g fill="none" strokeLinecap="round" strokeWidth="7">
-        <path d="M13 25A19 19 0 0 1 43 12" stroke="#55ad51" />
-        <path d="M43 12a19 19 0 0 1 4 28" stroke="#075735" />
-        <path d="M47 40a19 19 0 0 1-30 1" stroke="#075735" />
-      </g>
-      <circle cx="10" cy="35" r="4.5" fill="#67bd55" />
-      <path d="M27 21a12 12 0 0 1 11 8" fill="none" stroke="#075735" strokeLinecap="round" strokeWidth="6" />
-      <text x="61" y="37" fill="#075735" fontFamily="Daurin Sans, Arial, sans-serif" fontSize="24" fontWeight="700">Daurin</text>
-    </svg>
-  )
-}
-
 export default function Navbar() {
   const reduceMotion = useReducedMotion()
   const { profile } = useAuth()
@@ -39,7 +24,8 @@ export default function Navbar() {
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
     >
       <a href="#top" className="navbar__brand" aria-label="Daurin home">
-        <DaurinLogo />
+        <img src="/logo.png" alt="" aria-hidden="true" />
+        <span>Daurin</span>
       </a>
 
       <nav className="navbar__links" aria-label="Navigasi utama">

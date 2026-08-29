@@ -61,7 +61,10 @@ def list_my_reports(
         reporter_id=current_user.id,
         status=report_status,
     )
-    return CollectionResponse(data=rows, meta=pagination_meta(page, limit, total))
+    return CollectionResponse(
+        data=services.reports.with_signed_urls(rows),
+        meta=pagination_meta(page, limit, total),
+    )
 
 
 @router.get("", response_model=CollectionResponse[ReportOut])
@@ -86,7 +89,10 @@ def list_all_reports(
         date_from=date_from,
         date_to=date_to,
     )
-    return CollectionResponse(data=rows, meta=pagination_meta(page, limit, total))
+    return CollectionResponse(
+        data=services.reports.with_signed_urls(rows),
+        meta=pagination_meta(page, limit, total),
+    )
 
 
 @router.get("/{report_id}", response_model=SingleResponse[ReportOut])

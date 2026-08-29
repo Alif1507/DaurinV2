@@ -1,4 +1,4 @@
-# RE-SCHOOL Frontend
+# Daurin Frontend
 
 React/Vite frontend for the Daurin landing page, authenticated CAMIDE camera, and staff/admin dashboard.
 

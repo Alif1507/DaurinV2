@@ -1,1 +1,1 @@
-"""RE-SCHOOL backend application."""
+"""Daurin backend application."""

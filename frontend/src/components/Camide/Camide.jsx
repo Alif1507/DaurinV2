@@ -127,7 +127,7 @@ export default function Camide() {
     ? 'Mengidentifikasi...'
     : prediction
       ? prediction.is_confident
-        ? prediction.object_is_confident ? prediction.object_label : `${prediction.label} — objek spesifik belum pasti`
+        ? prediction.object_is_confident ? prediction.object_label || prediction.label : `${prediction.label} — objek spesifik belum pasti`
         : 'Belum dapat dipastikan'
       : ''
 
@@ -219,10 +219,10 @@ export default function Camide() {
                 <div className="camide__result-meta">
                   <span>Kategori <strong>{prediction.label}</strong></span>
                   <span>Keyakinan kategori <strong>{(prediction.confidence * 100).toFixed(1)}%</strong></span>
-                  {prediction.object_is_confident && <span>Keyakinan tipe <strong>{(prediction.object_confidence * 100).toFixed(1)}%</strong></span>}
+                  {prediction.object_is_confident && <span>Keyakinan tipe <strong>{((prediction.object_confidence ?? prediction.confidence) * 100).toFixed(1)}%</strong></span>}
                 </div>
-                <p className="camide__examples"><span>Contoh sejenis:</span> {prediction.examples.join(', ')}.</p>
-                <p className="camide__guidance"><span>Cara menangani:</span> {prediction.disposal_guidance}</p>
+                {prediction.examples?.length > 0 && <p className="camide__examples"><span>Contoh sejenis:</span> {prediction.examples.join(', ')}.</p>}
+                {prediction.disposal_guidance && <p className="camide__guidance"><span>Cara menangani:</span> {prediction.disposal_guidance}</p>}
               </>
             )}
             {prediction && !prediction.is_confident && (

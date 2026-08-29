@@ -36,7 +36,7 @@ class AuthService:
         metadata = auth_user.user_metadata or {}
         full_name = str(metadata.get("full_name") or email.split("@", maxsplit=1)[0]).strip()
         if len(full_name) < 2:
-            full_name = "RE-SCHOOL User"
+            full_name = "Daurin User"
         payload = {
             "id": str(auth_user.id),
             "full_name": full_name[:150],

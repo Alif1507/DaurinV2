@@ -27,7 +27,7 @@ export default function ReportingShell({ children, active }) {
         </div>
       </header>
       <main className="reporting-main">{children}</main>
-      <footer className="reporting-footer"><Link to="/"><ChevronLeft /> Kembali ke situs utama</Link><span><School /> RE-SCHOOL · Laporan kebersihan bersama</span></footer>
+      <footer className="reporting-footer"><Link to="/"><ChevronLeft /> Kembali ke situs utama</Link><span><School /> DAURIN · Laporan kebersihan bersama</span></footer>
     </div>
   )
 }

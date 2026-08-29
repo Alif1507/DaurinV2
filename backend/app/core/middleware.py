@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.responses import Response
 
 
-logger = logging.getLogger("reschool.request")
+logger = logging.getLogger("daurin.request")
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):

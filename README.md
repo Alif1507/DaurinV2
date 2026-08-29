@@ -1,4 +1,4 @@
-# Daurin — RE-SCHOOL
+# Daurin
 
 Daurin is a school cleanliness and waste-management platform. Students and
 teachers can report problems and track their resolution, while staff and admins
@@ -17,7 +17,8 @@ authentication/database/storage, and CAMIDE image-based waste classification.
 - Staff/admin report workflow and resolution notes
 - Waste weighing records and sorting guides
 - Operational dashboards, trends, comparisons, and location performance
-- CAMIDE classification for organic, inorganic, B3, and residual waste
+- CAMIDE classification for 10 material types, grouped into organic,
+  inorganic, B3, and residual waste
 - Private Supabase storage with short-lived signed image URLs
 - Dockerized frontend and backend with health checks
 - Swagger, ReDoc, structured errors, request IDs, and automated backend tests
@@ -145,7 +146,7 @@ The remaining settings already have development defaults in `.env.example`.
 
 Run these files in numeric order using the Supabase SQL Editor or CLI:
 
-1. `backend/supabase/migrations/001_reschool_mvp.sql`
+1. `backend/supabase/migrations/001_daurin_mvp.sql`
 2. `backend/supabase/migrations/002_camide.sql`
 3. `backend/supabase/migrations/003_dashboard_indexes.sql`
 
@@ -173,6 +174,12 @@ CAMIDE maps Recylo's hazardous subclasses to `b3`, non-recyclable waste to
 `residual`, organic waste to `organic`, and recyclable subclasses to
 `inorganic`. Model provenance, checksum, and license are documented in
 `backend/app/ml/models/README.md`.
+
+Classification results also include the most likely detailed type, such as
+recyclable plastic, cardboard, metal, batteries, or e-waste. The UI translates
+these types into Indonesian labels, familiar examples such as plastic bottles
+and banana peels, confidence values, and disposal guidance. The current model
+recognizes material groups rather than every individual object subtype.
 
 For local API/UI testing without the model, set the following in
 `backend/.env`:

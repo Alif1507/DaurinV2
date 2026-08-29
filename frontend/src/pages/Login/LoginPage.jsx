@@ -8,16 +8,12 @@ import './LoginPage.css'
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { session, profile, signIn, sendPasswordReset } = useAuth()
+  const { session, profile, signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState(
-    location.state?.passwordUpdated ? 'Password berhasil diperbarui. Silakan masuk kembali.' : '',
-  )
 
   useEffect(() => {
     if (!session || !profile) return
@@ -29,7 +25,6 @@ export default function LoginPage() {
     event.preventDefault()
     setIsSubmitting(true)
     setError('')
-    setNotice('')
     try {
       const signedInProfile = await signIn(email.trim(), password)
       const requestedPath = location.state?.from?.pathname
@@ -42,35 +37,16 @@ export default function LoginPage() {
     }
   }
 
-  async function handleForgotPassword() {
-    if (!email.trim()) {
-      setError('Masukkan email terlebih dahulu untuk menerima tautan pemulihan.')
-      return
-    }
-    setIsResetting(true)
-    setError('')
-    try {
-      await sendPasswordReset(email.trim())
-      setNotice('Tautan pemulihan sudah dikirim. Periksa kotak masuk emailmu.')
-    } catch (resetError) {
-      setError(resetError.message)
-    } finally {
-      setIsResetting(false)
-    }
-  }
-
   return (
-    <AuthLayout mode="login" title="Welcome Back!" subtitle="Masuk untuk melanjutkan perjalanan bersihmu.">
+    <AuthLayout mode="login" title="Selamat datang kembali." subtitle="Masuk untuk melanjutkan aksi bersihmu di sekolah.">
       <form className="auth-form" onSubmit={handleSubmit}>
         <label><span>Email</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="Email" required /></label>
         <label><span>Password</span><span className="auth-password"><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" placeholder="Password" required minLength={6} /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}>{showPassword ? <EyeOff /> : <Eye />}</button></span></label>
 
-        <button className="auth-forgot" type="button" onClick={handleForgotPassword} disabled={isResetting}>{isResetting ? 'Mengirim...' : 'Forgot Password?'}</button>
         {error && <p className="auth-message auth-message--error" role="alert">{error}</p>}
-        {notice && <p className="auth-message auth-message--success" role="status">{notice}</p>}
 
-        <div className="auth-switch"><span>Don&apos;t have an account?</span><Link to="/register">Sign Up</Link></div>
-        <button className="auth-submit" type="submit" disabled={isSubmitting}><strong>{isSubmitting ? 'Logging In...' : 'Log In'}</strong><span><ArrowUpRight /></span></button>
+        <div className="auth-switch"><span>Belum punya akun?</span><Link to="/register">Daftar</Link></div>
+        <button className="auth-submit" type="submit" disabled={isSubmitting}><strong>{isSubmitting ? 'Sedang masuk...' : 'Masuk'}</strong><span><ArrowUpRight /></span></button>
       </form>
     </AuthLayout>
   )

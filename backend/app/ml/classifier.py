@@ -107,7 +107,7 @@ class WasteClassifier:
                 f"Waste classification model must output {expected_size} classes for the configured profile",
                 503,
             )
-
+ 
         # Accept a probability vector; otherwise treat the output as logits.
         if not np.all(np.isfinite(output)):
             raise AppError("MODEL_OUTPUT_INVALID", "Waste classification model returned non-finite values", 503)
@@ -123,7 +123,14 @@ class WasteClassifier:
             for source_label, probability in zip(self.RECYLO_CLASSES, probabilities, strict=True):
                 grouped[self.RECYLO_TO_CAMIDE[source_label]] += float(probability)
             category = max(grouped, key=grouped.get)
-            object_index = int(np.argmax(probabilities))
+            # Keep the detailed type consistent with the winning broad
+            # category, even when several smaller subclass scores add up.
+            category_indexes = [
+                index
+                for index, source_label in enumerate(self.RECYLO_CLASSES)
+                if self.RECYLO_TO_CAMIDE[source_label] == category
+            ]
+            object_index = max(category_indexes, key=lambda index: probabilities[index])
             return {
                 "category": category,
                 "confidence": grouped[category],

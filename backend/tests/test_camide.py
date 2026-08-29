@@ -171,8 +171,8 @@ def test_recylo_profile_uses_nhwc_and_groups_subclasses():
     assert session.tensor.shape == (1, 224, 224, 3)
     assert result["category"] == "b3"
     assert result["confidence"] == pytest.approx(0.4)
-    assert result["object_class"] == "organic"
-    assert result["object_confidence"] == pytest.approx(0.2)
+    assert result["object_class"] == "hazardous_batteries"
+    assert result["object_confidence"] == pytest.approx(0.1)
 
 
 def test_detailed_recylo_class_returns_specific_object_guidance():

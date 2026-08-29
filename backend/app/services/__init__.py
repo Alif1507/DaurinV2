@@ -1,1 +1,1 @@
-"""Business services for the RE-SCHOOL API."""
+"""Business services for the Daurin API."""

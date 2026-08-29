@@ -7,6 +7,7 @@ import {
   Building2,
   CheckCircle2,
   ClipboardCheck,
+  Image,
   Leaf,
   MapPin,
   Play,
@@ -118,6 +119,7 @@ export function ReportsDashboardPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [selectedReport, setSelectedReport] = useState(null)
+  const [previewReport, setPreviewReport] = useState(null)
   const [resolutionNote, setResolutionNote] = useState('')
   const [notice, setNotice] = useState('')
   const resolutionInputRef = useRef(null)
@@ -188,6 +190,20 @@ export function ReportsDashboardPage() {
     return () => window.removeEventListener('keydown', handleEscape)
   }, [selectedReport, resolveReportMutation.isPending])
 
+  useEffect(() => {
+    if (!previewReport) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setPreviewReport(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [previewReport])
+
   return (
     <DashboardShell>
       <WorkspaceHeader icon={Trash2} eyebrow="Pusat tindak lanjut" title="Dari laporan ke tindakan." description="Urutkan masalah, lihat konteks lokasi, dan jaga setiap laporan sampai selesai." />
@@ -213,13 +229,22 @@ export function ReportsDashboardPage() {
             <div className="workspace-empty"><span><ClipboardCheck /></span><div><h3>{(reportsQuery.data || []).length ? 'Tidak ada laporan pada filter ini' : 'Antrean laporan masih kosong'}</h3><p>{(reportsQuery.data || []).length ? 'Ubah filter atau pencarian untuk melihat laporan lain.' : 'Laporan dari siswa dan guru akan muncul di sini untuk mulai ditangani.'}</p></div>{(reportsQuery.data || []).length > 0 && <button type="button" onClick={() => { setSearch(''); setStatus('all') }}>Tampilkan semua</button>}</div>
           ) : (
             <div className="responsive-table">
-              <table><thead><tr><th>Masalah</th><th>Lokasi</th><th>Waktu</th><th>Status</th><th>Langkah berikut</th></tr></thead><tbody>
-                {reports.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description || 'Tanpa keterangan tambahan'}</small></td><td>{locationNames[report.location_id] || 'Lokasi tidak aktif'}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td>{report.status === 'reported' ? <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => { setNotice(''); startReportMutation.mutate(report.id) }}>{startReportMutation.isPending && startReportMutation.variables === report.id ? 'Mengambil...' : <><Play /> Mulai tangani</>}</button> : report.status === 'in_progress' ? <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button> : <span className="next-step next-step--done"><CheckCircle2 /> Tuntas</span>}</td></tr>)}
+              <table><thead><tr><th>Masalah</th><th>Lampiran</th><th>Lokasi</th><th>Waktu</th><th>Status</th><th>Langkah berikut</th></tr></thead><tbody>
+                {reports.map((report) => <tr key={report.id}><td><strong>{problemLabels[report.problem_type]}</strong><small>{report.description || 'Tanpa keterangan tambahan'}</small></td><td>{report.photo_url ? <button className="report-photo-trigger" type="button" onClick={() => setPreviewReport(report)} aria-label={`Lihat foto ${problemLabels[report.problem_type]}`}><img src={report.photo_url} alt="" /><span><Image /> Lihat foto</span></button> : <span className={`report-photo-empty${report.photo_path ? ' is-unavailable' : ''}`}>{report.photo_path ? 'Foto tidak tersedia' : 'Tidak ada foto'}</span>}</td><td>{locationNames[report.location_id] || 'Lokasi tidak aktif'}</td><td>{formatDateTime(report.created_at)}</td><td><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></td><td>{report.status === 'reported' ? <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => { setNotice(''); startReportMutation.mutate(report.id) }}>{startReportMutation.isPending && startReportMutation.variables === report.id ? 'Mengambil...' : <><Play /> Mulai tangani</>}</button> : report.status === 'in_progress' ? <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button> : <span className="next-step next-step--done"><CheckCircle2 /> Tuntas</span>}</td></tr>)}
               </tbody></table>
-              <div className="mobile-records">{reports.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description || 'Tanpa keterangan tambahan'}</p><small>{locationNames[report.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(report.created_at)}</small>{report.status === 'reported' && <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => startReportMutation.mutate(report.id)}><Play /> Mulai tangani</button>}{report.status === 'in_progress' && <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button>}</article>)}</div>
+              <div className="mobile-records">{reports.map((report) => <article key={report.id}><div><strong>{problemLabels[report.problem_type]}</strong><span className={`status-pill status-pill--${report.status}`}>{statusLabels[report.status]}</span></div><p>{report.description || 'Tanpa keterangan tambahan'}</p><small>{locationNames[report.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(report.created_at)}</small>{report.photo_url && <button className="report-photo-mobile" type="button" onClick={() => setPreviewReport(report)}><img src={report.photo_url} alt="" /><span><Image /> Lihat foto terlampir</span></button>}{report.status === 'reported' && <button className="staff-row-action" type="button" disabled={startReportMutation.isPending} onClick={() => startReportMutation.mutate(report.id)}><Play /> Mulai tangani</button>}{report.status === 'in_progress' && <button className="staff-row-action staff-row-action--complete" type="button" onClick={() => openResolveDialog(report)}><CheckCircle2 /> Selesaikan</button>}</article>)}</div>
             </div>
           )}
         </section>
+      )}
+      {previewReport && (
+        <div className="report-photo-backdrop" onMouseDown={() => setPreviewReport(null)}>
+          <section className="report-photo-dialog" role="dialog" aria-modal="true" aria-labelledby="report-photo-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>FOTO LAMPIRAN</span><h2 id="report-photo-title">{problemLabels[previewReport.problem_type]}</h2><p>{locationNames[previewReport.location_id] || 'Lokasi tidak aktif'} · {formatDateTime(previewReport.created_at)}</p></div><button type="button" onClick={() => setPreviewReport(null)} aria-label="Tutup preview foto" autoFocus><X /></button></header>
+            <div className="report-photo-dialog__image"><img src={previewReport.photo_url} alt={`Foto laporan ${problemLabels[previewReport.problem_type]} di ${locationNames[previewReport.location_id] || 'lokasi sekolah'}`} /></div>
+            <footer><p>{previewReport.description || 'Tidak ada keterangan tambahan untuk foto ini.'}</p><a href={previewReport.photo_url} target="_blank" rel="noreferrer">Buka ukuran asli <ArrowUpRight /></a></footer>
+          </section>
+        </div>
       )}
       {selectedReport && (
         <div className="location-dialog-backdrop" onMouseDown={closeResolveDialog}>
