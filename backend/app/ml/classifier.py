@@ -112,7 +112,7 @@ class WasteClassifier:
         if not np.all(np.isfinite(output)):
             raise AppError("MODEL_OUTPUT_INVALID", "Waste classification model returned non-finite values", 503)
         if np.all(output >= 0) and np.all(output <= 1) and np.isclose(output.sum(), 1.0, atol=1e-3):
-            probabilities = output
+            probabilities = output 
         else:
             stable = output - np.max(output)
             exponentials = np.exp(stable)

@@ -107,3 +107,15 @@ def test_student_cannot_create_waste_record(client):
         },
     )
     assert response.status_code == 403
+
+
+def test_non_admin_cannot_change_another_users_role(client):
+    app.dependency_overrides[get_current_user] = lambda: profile(Role.STAFF)
+    app.dependency_overrides[get_services] = FakeServices
+
+    response = client.patch(
+        f"/api/v1/users/{uuid4()}",
+        json={"role": "teacher"},
+    )
+
+    assert response.status_code == 403

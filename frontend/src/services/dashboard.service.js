@@ -64,6 +64,11 @@ export async function deleteWasteRecord(recordId) {
 
 export const getUsers = (params = {}) => getData('/users', { page: 1, limit: 100, ...params })
 
+export async function updateUserRole({ userId, role }) {
+  const response = await api.patch(`/users/${userId}`, { role })
+  return response.data.data
+}
+
 export const getRecentReports = (params) => getData('/reports', {
     page: 1,
     limit: 6,

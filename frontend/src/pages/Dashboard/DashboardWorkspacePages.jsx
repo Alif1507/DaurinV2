@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   Image,
   Leaf,
+  LockKeyhole,
   MapPin,
   Pencil,
   Play,
@@ -47,6 +48,7 @@ import {
   resolveReport,
   startReport,
   updateLocation,
+  updateUserRole,
   updateWasteRecord,
 } from '../../services/dashboard.service'
 import {
@@ -67,6 +69,15 @@ const roleLabels = {
   student: 'Siswa',
 }
 
+const assignableRoles = ['student', 'teacher', 'staff']
+
+const roleAccessLabels = {
+  admin: 'Semua pengaturan',
+  staff: 'Operasional',
+  teacher: 'Pantau & lapor',
+  student: 'Lapor & CAMIDE',
+}
+
 function formatDateTime(value) {
   if (!value) return '—'
   return new Intl.DateTimeFormat('id-ID', {
@@ -85,7 +96,7 @@ function WorkspaceHeader({ icon: Icon, eyebrow, title, description }) {
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
-      <div className="dashboard-heading__status"><span /><div><strong>Data terhubung</strong><small>FastAPI + Supabase</small></div></div>
+      <div className="dashboard-heading__status"><span /><div><strong>Data terhubung</strong></div></div>
     </header>
   )
 }
@@ -817,9 +828,24 @@ export function LocationsDashboardPage() {
 }
 
 export function UsersDashboardPage() {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('all')
+  const [editingUser, setEditingUser] = useState(null)
+  const [nextRole, setNextRole] = useState('student')
+  const [notice, setNotice] = useState('')
   const usersQuery = useQuery({ queryKey: ['users', 'workspace'], queryFn: () => getUsers() })
+  const roleMutation = useMutation({
+    mutationFn: updateUserRole,
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(['users', 'workspace'], (currentUsers = []) => currentUsers.map((user) => (
+        user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+      )))
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setNotice(`Role ${updatedUser.full_name} berhasil diubah menjadi ${roleLabels[updatedUser.role]}.`)
+      setEditingUser(null)
+    },
+  })
   const users = useMemo(() => (usersQuery.data || []).filter((user) => {
     const matchesRole = role === 'all' || user.role === role
     return matchesRole && `${user.full_name} ${user.email}`.toLowerCase().includes(search.toLowerCase())
@@ -827,6 +853,31 @@ export function UsersDashboardPage() {
   const userPagination = useClientPagination(users, 15, `${role}:${search}`)
   const allUsers = usersQuery.data || []
   const activeUsers = allUsers.filter((user) => user.is_active).length
+
+  const openRoleEditor = (user) => {
+    if (user.role === 'admin') return
+    roleMutation.reset()
+    setEditingUser(user)
+    setNextRole(user.role)
+  }
+
+  const closeRoleEditor = () => {
+    if (roleMutation.isPending) return
+    setEditingUser(null)
+    roleMutation.reset()
+  }
+
+  const handleRoleUpdate = (event) => {
+    event.preventDefault()
+    if (!editingUser || nextRole === editingUser.role || !assignableRoles.includes(nextRole)) return
+    roleMutation.mutate({ userId: editingUser.id, role: nextRole })
+  }
+
+  const roleAction = (user) => user.role === 'admin' ? (
+    <span className="user-role-protected" title="Role admin tidak dapat diubah"><LockKeyhole /> Admin dilindungi</span>
+  ) : (
+    <button type="button" className="user-role-action" onClick={() => openRoleEditor(user)} aria-label={`Ubah role ${user.full_name}`}><Pencil /> Ubah role</button>
+  )
 
   return (
     <DashboardShell>
@@ -836,13 +887,28 @@ export function UsersDashboardPage() {
         { label: 'Guru', value: formatNumber(allUsers.filter((user) => user.role === 'teacher').length, 0), note: 'pendamping' },
         { label: 'Siswa', value: formatNumber(allUsers.filter((user) => user.role === 'student').length, 0), note: 'pelapor' },
       ]} />
+      {notice && <div className="location-created-notice staff-notice" role="status"><CheckCircle2 /><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="Tutup pemberitahuan"><X /></button></div>}
       <section className="workspace-toolbar">
         <SearchControl value={search} onChange={setSearch} placeholder="Cari nama atau email" />
         <div className="workspace-segments" role="group" aria-label="Filter peran pengguna">{[['all', 'Semua'], ['admin', 'Admin'], ['staff', 'Staf'], ['teacher', 'Guru'], ['student', 'Siswa']].map(([value, label]) => <button key={value} type="button" className={role === value ? 'is-active' : ''} onClick={() => setRole(value)}>{label}</button>)}</div>
       </section>
       {usersQuery.isLoading && <LoadingPanel />}
       {usersQuery.isError && <ErrorPanel query={usersQuery} />}
-      {!usersQuery.isLoading && !usersQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Daftar akses</span><h2>{users.length} pengguna</h2></div><span className="permission-note"><ShieldCheck /> Peran terverifikasi</span></header><div className="responsive-table"><table><thead><tr><th>Pengguna</th><th>Peran</th><th>Status</th><th>Aktivitas terakhir</th><th>Akses utama</th></tr></thead><tbody>{userPagination.paginatedItems.map((user) => <tr key={user.id}><td><span className="user-cell"><i>{user.full_name.slice(0, 1)}</i><span><strong>{user.full_name}</strong><small>{user.email}</small></span></span></td><td><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></td><td><span className={`account-state${user.is_active ? '' : ' is-inactive'}`}><i /> {user.is_active ? 'Aktif' : 'Nonaktif'}</span></td><td>{formatDateTime(user.last_seen)}</td><td>{user.role === 'admin' ? 'Semua pengaturan' : user.role === 'staff' ? 'Operasional' : user.role === 'teacher' ? 'Pantau & lapor' : 'Lapor & CAMIDE'}</td></tr>)}</tbody></table><div className="mobile-records">{userPagination.paginatedItems.map((user) => <article key={user.id}><div><strong>{user.full_name}</strong><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></div><p>{user.email}</p><small>{user.is_active ? 'Aktif' : 'Nonaktif'} · Terakhir {formatDateTime(user.last_seen)}</small></article>)}</div></div><DataPagination {...userPagination} totalItems={users.length} onPageChange={userPagination.setPage} label="pengguna" /></section>}
+      {!usersQuery.isLoading && !usersQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Daftar akses</span><h2>{users.length} pengguna</h2></div><span className="permission-note"><ShieldCheck /> Hanya admin dapat mengubah role</span></header><div className="responsive-table"><table><thead><tr><th>Pengguna</th><th>Peran</th><th>Status</th><th>Aktivitas terakhir</th><th>Akses utama</th><th>Aksi</th></tr></thead><tbody>{userPagination.paginatedItems.map((user) => <tr key={user.id}><td><span className="user-cell"><i>{user.full_name.slice(0, 1)}</i><span><strong>{user.full_name}</strong><small>{user.email}</small></span></span></td><td><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></td><td><span className={`account-state${user.is_active ? '' : ' is-inactive'}`}><i /> {user.is_active ? 'Aktif' : 'Nonaktif'}</span></td><td>{formatDateTime(user.last_seen)}</td><td>{roleAccessLabels[user.role]}</td><td>{roleAction(user)}</td></tr>)}</tbody></table><div className="mobile-records">{userPagination.paginatedItems.map((user) => <article key={user.id}><div><strong>{user.full_name}</strong><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></div><p>{user.email}</p><small>{user.is_active ? 'Aktif' : 'Nonaktif'} · Terakhir {formatDateTime(user.last_seen)}</small><footer className="user-mobile-role-action">{roleAction(user)}</footer></article>)}</div></div><DataPagination {...userPagination} totalItems={users.length} onPageChange={userPagination.setPage} label="pengguna" /></section>}
+      {editingUser && (
+        <div className="location-dialog-backdrop" onMouseDown={closeRoleEditor}>
+          <section className="location-dialog role-dialog" role="dialog" aria-modal="true" aria-labelledby="role-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>AKSES PENGGUNA / UBAH ROLE</span><h2 id="role-dialog-title">Atur tanggung jawab pengguna</h2><p>Pilih akses yang sesuai untuk {editingUser.full_name}. Perubahan berlaku saat data disimpan.</p></div><button type="button" onClick={closeRoleEditor} disabled={roleMutation.isPending} aria-label="Tutup formulir"><X /></button></header>
+            <form onSubmit={handleRoleUpdate}>
+              <div className="operation-context role-user-context"><span className="role-user-context__avatar">{editingUser.full_name.slice(0, 1)}</span><div><strong>{editingUser.full_name}</strong><span>{editingUser.email}</span></div></div>
+              <label><span>Role baru <strong>*</strong></span><select autoFocus value={nextRole} onChange={(event) => setNextRole(event.target.value)} disabled={roleMutation.isPending}>{assignableRoles.map((availableRole) => <option key={availableRole} value={availableRole}>{roleLabels[availableRole]}</option>)}</select></label>
+              <div className="role-change-preview"><ShieldCheck /><div><span>Akses setelah perubahan</span><strong>{roleAccessLabels[nextRole]}</strong><small>Role admin tidak tersedia dan seluruh akun admin tetap dilindungi.</small></div></div>
+              {roleMutation.isError && <p className="location-form-error" role="alert">{roleMutation.error?.userMessage || 'Role gagal diubah. Periksa akses admin lalu coba lagi.'}</p>}
+              <footer><button type="button" onClick={closeRoleEditor} disabled={roleMutation.isPending}>Batal</button><button className="location-add-button" type="submit" disabled={roleMutation.isPending || nextRole === editingUser.role}>{roleMutation.isPending ? 'Menyimpan...' : <><ShieldCheck /> Simpan role</>}</button></footer>
+            </form>
+          </section>
+        </div>
+      )}
     </DashboardShell>
   )
 }

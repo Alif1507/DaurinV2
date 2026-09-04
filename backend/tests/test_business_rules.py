@@ -3,10 +3,11 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from app.core.exceptions import AuthorizationError, ConflictError
 from app.schemas.enums import ReportStatus, Role, TrendPeriod
-from app.schemas.user import Profile
+from app.schemas.user import Profile, UserCreate, UserUpdate
 from app.schemas.waste import WasteRecordUpdate
 from app.services.dashboard_service import (
     calculate_report_summary,
@@ -14,6 +15,7 @@ from app.services.dashboard_service import (
     period_label,
 )
 from app.services.report_service import ReportService, validate_report_transition
+from app.services.user_service import UserService
 from app.services.waste_service import WasteService
 
 
@@ -136,3 +138,63 @@ def test_dashboard_formulas():
 def test_weekly_and_monthly_period_labels():
     assert period_label(date(2026, 8, 25), TrendPeriod.WEEKLY) == "2026-08-24"
     assert period_label(date(2026, 8, 25), TrendPeriod.MONTHLY) == "2026-08"
+
+
+def test_admin_can_change_a_non_admin_role():
+    user_id = uuid4()
+
+    class FakeProfiles:
+        def get(self, _user_id):
+            return {
+                "id": str(user_id),
+                "full_name": "Student Test",
+                "email": "student@example.com",
+                "role": "student",
+                "is_active": True,
+            }
+
+        def update(self, _user_id, payload):
+            return {**self.get(_user_id), **payload}
+
+    service = UserService(None, FakeProfiles())
+
+    result = service.update(user_id, UserUpdate(role=Role.STAFF))
+
+    assert result["role"] == "staff"
+
+
+def test_admin_role_cannot_be_changed():
+    user_id = uuid4()
+
+    class FakeProfiles:
+        def get(self, _user_id):
+            return {
+                "id": str(user_id),
+                "full_name": "Admin Test",
+                "email": "admin@example.com",
+                "role": "admin",
+                "is_active": True,
+            }
+
+        def update(self, _user_id, payload):
+            raise AssertionError("A protected admin profile must not be updated")
+
+    service = UserService(None, FakeProfiles())
+
+    with pytest.raises(AuthorizationError):
+        service.update(user_id, UserUpdate(role=Role.STAFF))
+
+
+def test_admin_cannot_be_selected_as_a_new_role():
+    with pytest.raises(ValidationError):
+        UserUpdate(role=Role.ADMIN)
+
+
+def test_admin_cannot_be_selected_when_creating_a_user():
+    with pytest.raises(ValidationError):
+        UserCreate(
+            email="new-admin@example.com",
+            password="password123",
+            full_name="New Admin",
+            role=Role.ADMIN,
+        )

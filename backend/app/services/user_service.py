@@ -2,8 +2,9 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from app.core.exceptions import AppError, NotFoundError
+from app.core.exceptions import AppError, AuthorizationError, NotFoundError
 from app.repositories.profile_repository import ProfileRepository
+from app.schemas.enums import Role
 from app.schemas.user import UserCreate, UserUpdate
 
 
@@ -45,9 +46,12 @@ class UserService:
             raise AppError("USER_CREATE_FAILED", "Could not create user", 502) from exc
 
     def update(self, user_id: UUID, model: UserUpdate) -> dict:
-        if self.profiles.get(user_id) is None:
+        current = self.profiles.get(user_id)
+        if current is None:
             raise NotFoundError("USER_NOT_FOUND", "User not found")
         payload = model.model_dump(mode="json", exclude_unset=True)
+        if "role" in payload and current["role"] == Role.ADMIN.value:
+            raise AuthorizationError("Admin roles are protected and cannot be changed")
         payload["updated_at"] = datetime.now(timezone.utc).isoformat()
         result = self.profiles.update(user_id, payload)
         if result is None:

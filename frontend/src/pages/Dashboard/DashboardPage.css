@@ -170,7 +170,6 @@
 .dashboard-heading__status.has-error > span { background: #c98220; box-shadow: 0 0 0 5px rgba(201, 130, 32, .13); }
 .dashboard-heading__status div { display: grid; gap: 2px; }
 .dashboard-heading__status strong { font-size: 12px; }
-.dashboard-heading__status small { color: var(--dash-muted); font-size: 10px; }
 
 .dashboard-filters {
   display: flex;
@@ -577,6 +576,22 @@
 .role-chip--staff { color: #2d6680; background: #e4f0f5; }
 .role-chip--teacher { color: #66508a; background: #eee8f5; }
 .role-chip--student { color: #2f6b3d; background: #e7f3e7; }
+.user-role-action { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 1px solid #acc8b2; border-radius: 8px; color: #155d38; background: #f3f8f2; font-size: 9px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.user-role-action:hover { border-color: #70a27a; background: #e6f2e5; }
+.user-role-action:focus-visible { outline: 3px solid rgba(63, 137, 82, .22); outline-offset: 2px; }
+.user-role-action svg, .user-role-protected svg { width: 13px; height: 13px; }
+.user-role-protected { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; color: #7c6842; font-size: 9px; font-weight: 750; white-space: nowrap; }
+.user-mobile-role-action { display: flex; margin-top: 12px; padding-top: 11px; border-top: 1px solid #e5ece5; }
+.role-dialog { width: min(540px, 100%); }
+.role-user-context__avatar { flex: 0 0 auto; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; color: #fff; background: #195e3e; font-size: 13px; font-weight: 850; }
+.role-user-context > div { min-width: 0; }
+.role-user-context > div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.role-change-preview { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-left: 3px solid #3f8952; color: #2e6740; background: #edf5eb; }
+.role-change-preview > svg { flex: 0 0 auto; width: 19px; height: 19px; margin-top: 2px; }
+.role-change-preview > div { display: grid; gap: 3px; }
+.role-change-preview span { color: #718078; font: 750 8px ui-monospace, Consolas, monospace; letter-spacing: .07em; text-transform: uppercase; }
+.role-change-preview strong { color: #254733; font-size: 12px; }
+.role-change-preview small { color: #68786f; font-size: 9px; line-height: 1.5; }
 .account-state.is-inactive { color: #7b8580; }
 .account-state.is-inactive i { background: #a8b0ac; }
 
@@ -655,6 +670,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .mobile-records p { margin: 8px 0; color: #65766d; font-size: 10px; line-height: 1.5; }
   .mobile-records small { color: #819087; font-size: 9px; }
   .mobile-records .staff-row-action { width: 100%; margin-top: 12px; }
+  .mobile-records .user-role-action { width: 100%; }
+  .user-role-protected { min-height: 36px; }
   .operations-band__metrics { grid-template-columns: 1fr; }
   .operations-band { width: 100%; min-width: 0; max-width: 100%; }
   .operations-band__metrics > div { min-height: 82px; border-right: 0; border-bottom: 1px solid rgba(255,255,255,.1); }
@@ -796,7 +813,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background: transparent;
 }
 .dashboard-heading__status > span { width: 7px; height: 7px; box-shadow: none; }
-.dashboard-heading__status small { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 9px; }
 
 .dashboard-filters,
 .workspace-toolbar {
@@ -819,6 +835,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .dashboard-refresh,
 .location-add-button,
 .staff-row-action,
+.user-role-action,
 .workspace-empty > button,
 .location-empty--search > button { border-radius: 2px; box-shadow: none; }
 
@@ -920,7 +937,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .location-card { min-height: 315px; padding: 22px; border-radius: 4px; box-shadow: 0 4px 14px rgba(24, 28, 26, .03); }
 .location-card__icon,
 .location-card__facts > span,
-.user-cell > i { border-radius: 2px; }
+.user-cell > i,
+.role-user-context__avatar { border-radius: 2px; }
 .location-dialog { border-radius: 4px; }
 .location-dialog > header button,
 .location-dialog input,

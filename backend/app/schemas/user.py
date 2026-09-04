@@ -1,9 +1,15 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.schemas.enums import Role
+
+
+def assignable_role(role: Role | None) -> Role | None:
+    if role == Role.ADMIN:
+        raise ValueError("Admin cannot be selected as a new role")
+    return role
 
 
 class Profile(BaseModel):
@@ -24,11 +30,15 @@ class UserCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=150)
     role: Role
 
+    _role_must_be_assignable = field_validator("role")(assignable_role)
+
 
 class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=150)
     role: Role | None = None
     is_active: bool | None = None
+
+    _role_must_be_assignable = field_validator("role")(assignable_role)
 
 
 class AuthPublicConfig(BaseModel):
