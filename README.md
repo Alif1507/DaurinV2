@@ -456,6 +456,7 @@ Verify the ONNX file path, label order, model input contract, and
 
 ## Additional documentation
 
+- [Application flowcharts](FLOWCHARTS.md)
 - [Backend documentation](backend/README.md)
 - [Frontend documentation](frontend/README.md)
 - [CAMIDE model contract](backend/app/ml/models/README.md)

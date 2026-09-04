@@ -774,7 +774,43 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .dashboard-sidebar__action svg { width: 15px; }
 .dashboard-user { margin-top: 18px; padding: 17px 0 13px; }
 .dashboard-user__avatar { border-radius: 50%; color: #002112; background: #a9f2c7; }
-.dashboard-back { padding: 8px 0 0; }
+.dashboard-back {
+  margin-top: 12px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(169, 242, 199, .4);
+  border-radius: 4px;
+  color: #002815 !important;
+  background: #a9f2c7;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .02em;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dashboard-back:hover {
+  background: #c3f9db;
+  border-color: #c3f9db;
+  color: #00190d !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+  transform: translateY(-1px);
+}
+.dashboard-back:active {
+  transform: translateY(0);
+}
+.dashboard-back svg {
+  width: 15px !important;
+  height: 15px;
+  transition: transform .2s ease;
+}
+.dashboard-back:hover svg {
+  transform: translateX(-3px);
+}
 
 .dashboard-main {
   width: calc(100% - 250px);

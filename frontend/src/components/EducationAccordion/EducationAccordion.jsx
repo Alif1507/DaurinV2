@@ -127,8 +127,7 @@ export default function EducationAccordion() {
           viewport={{ once: true, amount: 0.8 }}
           transition={{ duration: reduceMotion ? 0 : 0.72, ease }}
         >
-          <span className="education__initial" aria-hidden="true">E</span>
-          <span>dukasi</span>
+          <span>Edukasi</span>
         </motion.h2>
 
         <div className="education__list">

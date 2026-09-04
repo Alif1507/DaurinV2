@@ -54,7 +54,10 @@ export default function DashboardShell({ children }) {
           <div><strong>{profile?.full_name}</strong><span>{profile?.role}</span></div>
           <button type="button" onClick={signOut} aria-label="Keluar"><LogOut /></button>
         </div>
-        <Link className="dashboard-back" to="/"><ChevronLeft /> Kembali ke situs</Link>
+        <Link className="dashboard-back" to="/">
+          <ChevronLeft />
+          <span>Kembali ke situs utama</span>
+        </Link>
       </aside>
       <main className="dashboard-main">{children}</main>
     </div>
