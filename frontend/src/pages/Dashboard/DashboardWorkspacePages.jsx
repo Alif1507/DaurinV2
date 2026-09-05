@@ -894,7 +894,100 @@ export function UsersDashboardPage() {
       </section>
       {usersQuery.isLoading && <LoadingPanel />}
       {usersQuery.isError && <ErrorPanel query={usersQuery} />}
-      {!usersQuery.isLoading && !usersQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel"><header className="dashboard-panel__header"><div><span>Daftar akses</span><h2>{users.length} pengguna</h2></div><span className="permission-note"><ShieldCheck /> Hanya admin dapat mengubah role</span></header><div className="responsive-table"><table><thead><tr><th>Pengguna</th><th>Peran</th><th>Status</th><th>Aktivitas terakhir</th><th>Akses utama</th><th>Aksi</th></tr></thead><tbody>{userPagination.paginatedItems.map((user) => <tr key={user.id}><td><span className="user-cell"><i>{user.full_name.slice(0, 1)}</i><span><strong>{user.full_name}</strong><small>{user.email}</small></span></span></td><td><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></td><td><span className={`account-state${user.is_active ? '' : ' is-inactive'}`}><i /> {user.is_active ? 'Aktif' : 'Nonaktif'}</span></td><td>{formatDateTime(user.last_seen)}</td><td>{roleAccessLabels[user.role]}</td><td>{roleAction(user)}</td></tr>)}</tbody></table><div className="mobile-records">{userPagination.paginatedItems.map((user) => <article key={user.id}><div><strong>{user.full_name}</strong><span className={`role-chip role-chip--${user.role}`}>{roleLabels[user.role]}</span></div><p>{user.email}</p><small>{user.is_active ? 'Aktif' : 'Nonaktif'} · Terakhir {formatDateTime(user.last_seen)}</small><footer className="user-mobile-role-action">{roleAction(user)}</footer></article>)}</div></div><DataPagination {...userPagination} totalItems={users.length} onPageChange={userPagination.setPage} label="pengguna" /></section>}
+      {!usersQuery.isLoading && !usersQuery.isError && <section className="dashboard-panel dashboard-panel--table workspace-table-panel">
+  <header className="dashboard-panel__header">
+    <div>
+      <span>Daftar akses</span>
+      <h2>{users.length} pengguna</h2>
+    </div>
+
+    <span className="permission-note">
+      <ShieldCheck />
+      Hanya admin dapat mengubah role
+    </span>
+  </header>
+
+  <div className="responsive-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Pengguna</th>
+          <th>Peran</th>
+          <th>Status</th>
+          <th>Akses utama</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {userPagination.paginatedItems.map((user) => (
+          <tr key={user.id}>
+            <td>
+              <span className="user-cell">
+                <i>{user.full_name.slice(0, 1)}</i>
+
+                <span>
+                  <strong>{user.full_name}</strong>
+                  <small>{user.email}</small>
+                </span>
+              </span>
+            </td>
+
+            <td>
+              <span className={`role-chip role-chip--${user.role}`}>
+                {roleLabels[user.role]}
+              </span>
+            </td>
+
+            <td>
+              <span
+                className={`account-state${
+                  user.is_active ? "" : " is-inactive"
+                }`}
+              >
+                <i />
+                {user.is_active ? "Aktif" : "Nonaktif"}
+              </span>
+            </td>
+
+            <td>{roleAccessLabels[user.role]}</td>
+
+            <td>{roleAction(user)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    <div className="mobile-records">
+      {userPagination.paginatedItems.map((user) => (
+        <article key={user.id}>
+          <div>
+            <strong>{user.full_name}</strong>
+
+            <span className={`role-chip role-chip--${user.role}`}>
+              {roleLabels[user.role]}
+            </span>
+          </div>
+
+          <p>{user.email}</p>
+
+          <small>{user.is_active ? "Aktif" : "Nonaktif"}</small>
+
+          <footer className="user-mobile-role-action">
+            {roleAction(user)}
+          </footer>
+        </article>
+      ))}
+    </div>
+  </div>
+
+  <DataPagination
+    {...userPagination}
+    totalItems={users.length}
+    onPageChange={userPagination.setPage}
+    label="pengguna"
+  />
+</section>}
       {editingUser && (
         <div className="location-dialog-backdrop" onMouseDown={closeRoleEditor}>
           <section className="location-dialog role-dialog" role="dialog" aria-modal="true" aria-labelledby="role-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
