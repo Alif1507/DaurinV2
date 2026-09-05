@@ -185,8 +185,7 @@ export default function Flow() {
     >
       <motion.header className="alur__header" {...reveal(reduceMotion)}>
         <h2 id="alur-title" className="alur__title">
-          <span className="alur__initial" aria-hidden="true">A</span>
-          <span>lur Pembuangan Sampah</span>
+          <span>Alur Pembuangan Sampah</span>
         </h2>
         <p>
           Ayo kita lihat bagaimana alur pembuangan sampah dari sekolah sampai
